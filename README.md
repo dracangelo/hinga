@@ -182,7 +182,21 @@ branded gradient if the image cannot be loaded.
 ```bash
 npm run build          # bundles the storefront into web/dist
 JWT_SECRET=<strong> npm start
-```
+```The API serves `web/dist` as static files with an SPA fallback, so a single process serves the whole site on `PORT`.
 
-The API serves `web/dist` as static files with an SPA fallback, so a single process serves
-the whole site on `PORT`.
+### Deploying to Vercel
+
+`vercel.json` declares two [Vercel Services](https://vercel.com/docs/services) in one project:
+`server` (the Express API, root `server/`) and `web` (the Vite storefront, root `web/`). Top-level
+rewrites send `/api/*` to the API and everything else to the storefront. The storefront carries its
+own SPA fallback rewrite, so deep links like `/shop/monstera-deliciosa` resolve to `index.html`
+while real build assets still come from the filesystem. Rewrites forward the original path, so the
+API keeps serving the `/api` prefix it already mounts — nothing has to be remapped.
+
+Set `JWT_SECRET` (and `CORS_ORIGIN`, if you want to narrow it) in the project's environment
+variables; services share them. Run `vercel dev` to exercise both services locally.
+
+> **Data does not persist as configured.** Vercel functions run from a read-only directory, so on
+> Vercel the API keeps its SQLite file in `/tmp`. That file is per-instance and disappears when the
+> instance recycles, so the catalogue and orders reset. Point the database at durable storage (a
+> hosted SQLite such as libSQL/Turso, or Postgres) before trusting the deployment with real data.

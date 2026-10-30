@@ -1,15 +1,30 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_CATEGORIES } from './lib/categories.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export const DATA_DIR = join(__dirname, '..', 'data');
-export const DB_PATH = process.env.DB_PATH || join(DATA_DIR, 'hinga.db');
 
-mkdirSync(DATA_DIR, { recursive: true });
+/*
+ * Serverless hosts (Vercel) run the API from a read-only deployment directory,
+ * so the bundled data/ folder cannot hold the database — only /tmp is writable
+ * there. That file is per-instance and thrown away when the instance recycles,
+ * so a real deployment should set DB_PATH to a database that lives on durable
+ * storage instead.
+ */
+const SERVERLESS = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+export const DB_PATH = process.env.DB_PATH
+  ? resolve(process.env.DB_PATH)
+  : SERVERLESS
+    ? join(tmpdir(), 'hinga.db')
+    : join(DATA_DIR, 'hinga.db');
+
+mkdirSync(dirname(DB_PATH), { recursive: true });
 
 export const db = new DatabaseSync(DB_PATH);
 
