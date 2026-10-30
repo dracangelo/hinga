@@ -1,0 +1,671 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* paper & stone */
+  --color-canvas: #fcf8f1;
+  --color-surface: #ffffff;
+  --color-cream: #fcf8f1;
+  --color-parchment: #f5eee1;
+  --color-sand: #e4d8c3;
+  --color-mist: #eef2e7;
+
+  /* ink */
+  --color-ink: #241f1a;
+  --color-ink-soft: #585248;
+  --color-ink-faint: #746a5e;
+
+  /* foliage */
+  --color-forest: #22392f;
+  --color-forest-soft: #33544a;
+  --color-sage: #8aa48d;
+  --color-sage-soft: #e4ebdd;
+  --color-leaf: #6f9455;
+  --color-leaf-dark: #5a7c44;
+
+  /* petals & earth */
+  --color-blush: #f2d9d7;
+  --color-rose: #9f4f5b;
+  --color-rose-soft: #f8e8e7;
+  --color-clay: #94552f;
+  --color-clay-soft: #f3e2d6;
+
+  /* brass */
+  --color-gold: #b3893c;
+  --color-gold-soft: #f6ecd6;
+
+  --radius-card: 1.5rem;
+}
+
+@layer base {
+  * {
+    border-color: color-mix(in oklab, var(--color-sand) 70%, transparent);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Fine paper grain over the whole storefront */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    pointer-events: none;
+    opacity: 0.32;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23grain)' opacity='0.2'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+    font-variation-settings: 'SOFT' 40, 'WONK' 0;
+  }
+
+  ::selection {
+    background-color: var(--color-sage-soft);
+    color: var(--color-forest);
+  }
+}
+
+@layer components {
+  .container-page {
+    width: 100%;
+    margin-inline: auto;
+    max-width: 80rem;
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .container-page {
+      padding-inline: 2rem;
+    }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Buttons                                                          */
+  /* ---------------------------------------------------------------- */
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    line-height: 1;
+    padding: 0.8rem 1.45rem;
+    letter-spacing: 0.005em;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.15s ease,
+      box-shadow 0.2s ease;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .btn-primary {
+    background-color: var(--color-forest);
+    color: var(--color-cream);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      0 1px 2px rgb(34 57 47 / 0.18);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-forest-soft);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.14),
+      0 14px 26px -14px rgb(34 57 47 / 0.75);
+  }
+
+  .btn-secondary {
+    background-color: color-mix(in oklab, white 70%, var(--color-cream));
+    color: var(--color-forest);
+    border: 1px solid color-mix(in oklab, var(--color-sand) 85%, transparent);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-parchment);
+    border-color: var(--color-sage);
+  }
+
+  .btn-rose {
+    background-color: var(--color-rose);
+    color: white;
+  }
+
+  .btn-rose:hover:not(:disabled) {
+    background-color: color-mix(in oklab, var(--color-rose) 88%, black);
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--color-ink-soft);
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--color-parchment);
+    color: var(--color-ink);
+  }
+
+  /* For use on the deep green sections */
+  .btn-light {
+    background-color: var(--color-cream);
+    color: var(--color-forest);
+  }
+
+  .btn-light:hover:not(:disabled) {
+    background-color: white;
+    box-shadow: 0 14px 26px -16px rgb(0 0 0 / 0.6);
+  }
+
+  .btn-sm {
+    padding: 0.55rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .btn-lg {
+    padding: 1rem 1.85rem;
+    font-size: 0.95rem;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Surfaces                                                         */
+  /* ---------------------------------------------------------------- */
+
+  .card {
+    background-color: var(--color-surface);
+    border: 1px solid color-mix(in oklab, var(--color-sand) 80%, transparent);
+    border-radius: var(--radius-card);
+  }
+
+  /* A framed, pressed-flower style card */
+  .card-petal {
+    background-color: var(--color-surface);
+    border: 1px solid color-mix(in oklab, var(--color-sand) 75%, transparent);
+    border-radius: var(--radius-card);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.7) inset;
+  }
+
+  .field {
+    width: 100%;
+    background-color: color-mix(in oklab, white 80%, var(--color-cream));
+    border: 1px solid var(--color-sand);
+    border-radius: 0.85rem;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.875rem;
+    color: var(--color-ink);
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      background-color 0.15s ease;
+  }
+
+  .field:focus {
+    outline: none;
+    background-color: white;
+    border-color: var(--color-sage);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-sage) 28%, transparent);
+  }
+
+  .field::placeholder {
+    color: var(--color-ink-faint);
+  }
+
+  .label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-ink-soft);
+    margin-bottom: 0.45rem;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 9999px;
+    padding: 0.22rem 0.65rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .link {
+    color: var(--color-forest);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: color-mix(in oklab, var(--color-sage) 70%, transparent);
+  }
+
+  .link:hover {
+    text-decoration-color: var(--color-forest);
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Type                                                             */
+  /* ---------------------------------------------------------------- */
+
+  .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-clay);
+  }
+
+  .section-title {
+    font-size: clamp(1.8rem, 3.3vw, 2.6rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+
+  /* Italic serif word inside a display heading */
+  .accent {
+    font-style: italic;
+    font-variation-settings: 'SOFT' 80, 'WONK' 1;
+    color: var(--color-forest-soft);
+  }
+
+  .accent-clay {
+    font-style: italic;
+    font-variation-settings: 'SOFT' 80, 'WONK' 1;
+    color: var(--color-clay);
+  }
+
+  .divider {
+    height: 1px;
+    background-color: color-mix(in oklab, var(--color-sand) 80%, transparent);
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Shapes                                                           */
+  /* ---------------------------------------------------------------- */
+
+  /* Tall arched photo frame — the signature florist shape */
+  .arch {
+    border-radius: 999px 999px 1.25rem 1.25rem;
+  }
+
+  .arch-soft {
+    border-radius: 7rem 7rem 0.9rem 0.9rem;
+  }
+
+  .arch-banner {
+    border-radius: 999px 999px 0.6rem 0.6rem;
+  }
+
+  .badge-burst {
+    clip-path: polygon(
+      50% 0%,
+      58% 10%,
+      70% 5%,
+      74% 17%,
+      87% 16%,
+      86% 29%,
+      98% 34%,
+      91% 45%,
+      100% 55%,
+      89% 62%,
+      93% 75%,
+      80% 76%,
+      78% 89%,
+      66% 85%,
+      59% 97%,
+      50% 88%,
+      41% 97%,
+      34% 85%,
+      22% 89%,
+      20% 76%,
+      7% 75%,
+      11% 62%,
+      0% 55%,
+      9% 45%,
+      2% 34%,
+      14% 29%,
+      13% 16%,
+      26% 17%,
+      30% 5%,
+      42% 10%
+    );
+  }
+
+  /* A hairline botanical rule used under section headings */
+  .rule-leaf {
+    position: relative;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      color-mix(in oklab, var(--color-sand) 90%, transparent),
+      color-mix(in oklab, var(--color-sand) 35%, transparent)
+    );
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Faint pressed-fern pattern for light sections */
+  .bg-fern {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23c8b99f' stroke-width='1.1' stroke-linecap='round' opacity='0.55'%3E%3Cpath d='M40 220C44 170 74 128 128 96'/%3E%3Cpath d='M52 198c-14-4-23-15-25-29 15-1 27 7 32 19'/%3E%3Cpath d='M64 178c16-1 28-11 32-25-15-2-27 5-33 17'/%3E%3Cpath d='M82 155c-12-6-18-18-16-32 14 2 24 12 26 25'/%3E%3Cpath d='M98 136c15-3 25-14 26-28-14-1-25 7-29 19'/%3E%3Cpath d='M118 116c-9-8-12-21-7-33 13 5 20 17 19 30'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 240px 240px;
+    background-repeat: repeat;
+  }
+
+  .animate-rise {
+    animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-fade {
+    animation: fade 0.35s ease both;
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-bloom {
+    animation: bloom 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes bloom {
+    from {
+      opacity: 0;
+      transform: scale(0.94) rotate(-1.5deg);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      100deg,
+      var(--color-parchment) 30%,
+      var(--color-surface) 50%,
+      var(--color-parchment) 70%
+    );
+    background-size: 220% 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+
+  @keyframes shimmer {
+    to {
+      background-position: -120% 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-rise,
+    .animate-fade,
+    .animate-bloom {
+      animation: none;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Dark theme — a botanical night, set on <html class="dark">           */
+/*                                                                    */
+/* The palette tokens are re-pointed here; the rules below catch the   */
+/* literal whites, the =text-forest= headings and the soft tints that  */
+/* the light theme spells as single-purpose utility classes. Kept      */
+/* unlayered so they win over Tailwind's utilities layer.              */
+/* ------------------------------------------------------------------ */
+
+.dark {
+  color-scheme: dark;
+
+  /* paper & stone */
+  --color-canvas: #100e0b;
+  --color-surface: #1a1713;
+  --color-parchment: #211d18;
+  --color-sand: #3b342c;
+  --color-mist: #16201a;
+
+  /* ink */
+  --color-ink: #f1eadf;
+  --color-ink-soft: #c4b9a8;
+  --color-ink-faint: #978c7d;
+
+  /* foliage — forest stays a deep green so the dark bands still read */
+  --color-forest: #1c3b2d;
+  --color-forest-soft: #2b5343;
+  --color-sage: #7f9a83;
+  --color-sage-soft: #243329;
+  --color-leaf: #8fb06c;
+  --color-leaf-dark: #7a9a5c;
+
+  /* petals & earth */
+  --color-blush: #3c272a;
+  --color-rose: #e39aa2;
+  --color-rose-soft: #332125;
+  --color-clay: #d8a077;
+  --color-clay-soft: #362720;
+
+  /* brass */
+  --color-gold: #e3bd72;
+  --color-gold-soft: #37301f;
+}
+
+/* Calmer grain over a dark page */
+.dark body::before {
+  opacity: 0.14;
+}
+
+/* Surfaces spelled as literal whites in the markup */
+.dark .bg-white,
+.dark .bg-white\/60,
+.dark .bg-white\/70 {
+  background-color: var(--color-surface);
+}
+
+.dark .card,
+.dark .card-petal {
+  background-color: var(--color-surface);
+  border-color: color-mix(in oklab, var(--color-sand) 62%, transparent);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.035) inset;
+}
+
+/* Page and panel fills; the faint cream washes on the deep green bands
+   keep their glassy light tint, so only the solid ones flip. */
+.dark .bg-cream {
+  background-color: var(--color-surface);
+}
+
+.dark .bg-cream\/95 {
+  background-color: color-mix(in oklab, var(--color-surface) 95%, transparent);
+}
+
+.dark .bg-cream\/92 {
+  background-color: color-mix(in oklab, var(--color-surface) 92%, transparent);
+}
+
+.dark .bg-cream\/90 {
+  background-color: color-mix(in oklab, var(--color-surface) 90%, transparent);
+}
+
+.dark .bg-cream\/80 {
+  background-color: color-mix(in oklab, var(--color-surface) 80%, transparent);
+}
+
+.dark .bg-cream\/70 {
+  background-color: color-mix(in oklab, var(--color-surface) 70%, transparent);
+}
+
+.dark .bg-cream\/50 {
+  background-color: color-mix(in oklab, var(--color-surface) 50%, transparent);
+}
+
+/* Gradients that wash a photo in paper: scrim them with the page tone
+   instead, so the hero and the CTA band stay dark. */
+.dark .from-cream {
+  --tw-gradient-from: var(--color-canvas);
+}
+
+.dark .from-cream\/85 {
+  --tw-gradient-from: rgb(16 14 11 / 0.85);
+}
+
+.dark .via-cream {
+  --tw-gradient-via: var(--color-canvas);
+}
+
+.dark .via-cream\/92 {
+  --tw-gradient-via: rgb(16 14 11 / 0.92);
+}
+
+.dark .via-cream\/78 {
+  --tw-gradient-via: rgb(16 14 11 / 0.78);
+}
+
+.dark .to-cream {
+  --tw-gradient-to: var(--color-canvas);
+}
+
+.dark .to-cream\/55 {
+  --tw-gradient-to: rgb(16 14 11 / 0.55);
+}
+
+.dark .to-cream\/15 {
+  --tw-gradient-to: rgb(16 14 11 / 0.15);
+}
+
+/* Inputs */
+.dark .field {
+  background-color: #211d18;
+  border-color: var(--color-sand);
+}
+
+.dark .field:focus {
+  background-color: #262119;
+}
+
+/* Buttons */
+.dark .btn-primary {
+  background-color: #2b5241;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 1px 2px rgb(0 0 0 / 0.45);
+}
+
+.dark .btn-primary:hover:not(:disabled) {
+  background-color: #356149;
+}
+
+.dark .btn-secondary {
+  background-color: #241f19;
+  color: #dfe9d6;
+  border-color: var(--color-sand);
+}
+
+.dark .btn-secondary:hover:not(:disabled) {
+  background-color: #2c261f;
+  border-color: var(--color-sage);
+}
+
+/* Stays a light button because it sits on the deep green bands */
+.dark .btn-light {
+  background-color: #f7f0e3;
+  color: #1c3b2d;
+}
+
+.dark .btn-light:hover:not(:disabled) {
+  background-color: #fffdf8;
+}
+
+/* Headings, links and hovers that used the deep green as ink */
+.dark .text-forest,
+.dark .hover\:text-forest:hover,
+.dark .group:hover .group-hover\:text-forest {
+  color: #d7e3cf;
+}
+
+.dark .text-forest-soft {
+  color: #c6d9bb;
+}
+
+.dark .link {
+  color: #d7e3cf;
+}
+
+.dark .link:hover {
+  text-decoration-color: #d7e3cf;
+}
+
+.dark .accent {
+  color: #bfd2b4;
+}
+
+.dark .hover\:text-ink:hover {
+  color: var(--color-ink);
+}
+
+.dark .hover\:bg-white:hover {
+  background-color: var(--color-surface);
+}
+
+.dark ::selection {
+  background-color: #33513f;
+  color: #f6f1e6;
+}
+
+/* The pressed-fern line art is drawn in light tan; keep it quiet */
+.dark .bg-fern {
+  opacity: 0.4;
+}
