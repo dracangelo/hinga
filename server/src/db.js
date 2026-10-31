@@ -1,34 +1,49 @@
-import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_CATEGORIES } from './lib/categories.js';
 
+let DatabaseSync;
+try {
+  const sqliteModule = await import('node:sqlite');
+  DatabaseSync = sqliteModule.DatabaseSync;
+} catch (err) {
+  console.error(
+    `[DB CRITICAL] Cannot load 'node:sqlite' on Node ${process.version}. ` +
+    `Please set Node.js Version to "22.x" in Vercel Project Settings -> General -> Node.js Version.`,
+    err,
+  );
+  throw err;
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export const DATA_DIR = join(__dirname, '..', 'data');
 
-/*
- * Serverless hosts (Vercel) run the API from a read-only deployment directory,
- * so the bundled data/ folder cannot hold the database — only /tmp is writable
- * there. That file is per-instance and thrown away when the instance recycles,
- * so a real deployment should set DB_PATH to a database that lives on durable
- * storage instead.
- */
-const SERVERLESS = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const SERVERLESS = Boolean(
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.NOW_REGION,
+);
 
-export const DB_PATH = process.env.DB_PATH
-  ? resolve(process.env.DB_PATH)
-  : SERVERLESS
-    ? join(tmpdir(), 'hinga.db')
-    : join(DATA_DIR, 'hinga.db');
+export const DB_PATH = SERVERLESS
+  ? (process.env.DB_PATH && process.env.DB_PATH.startsWith('/tmp')
+      ? resolve(process.env.DB_PATH)
+      : join(tmpdir(), 'hinga.db'))
+  : (process.env.DB_PATH
+      ? resolve(process.env.DB_PATH)
+      : join(DATA_DIR, 'hinga.db'));
 
-mkdirSync(dirname(DB_PATH), { recursive: true });
+try {
+  mkdirSync(dirname(DB_PATH), { recursive: true });
+} catch {
+  /* Ignore EROFS or existing directory */
+}
 
 export const db = new DatabaseSync(DB_PATH);
 
-db.exec('PRAGMA journal_mode = WAL');
+db.exec(SERVERLESS ? 'PRAGMA journal_mode = MEMORY' : 'PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
 db.exec(`

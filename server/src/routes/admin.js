@@ -27,10 +27,15 @@ const router = Router();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const SERVER_UPLOADS_DIR = process.env.VERCEL
+const SERVERLESS = Boolean(
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.NOW_REGION,
+);
+const SERVER_UPLOADS_DIR = SERVERLESS
   ? join(tmpdir(), 'uploads')
   : join(__dirname, '..', '..', 'uploads');
-const WEB_UPLOADS_DIR = process.env.VERCEL
+const WEB_UPLOADS_DIR = SERVERLESS
   ? join(tmpdir(), 'uploads')
   : join(__dirname, '..', '..', '..', 'web', 'public', 'uploads');
 
