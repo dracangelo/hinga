@@ -568,7 +568,7 @@ const ORDER_STATUSES = [
 
 /* ------------------------------------------------------------------ */
 
-function seed({ reset = false } = {}) {
+export function seed({ reset = false } = {}) {
   if (reset) {
     tx(() => {
       for (const table of [
