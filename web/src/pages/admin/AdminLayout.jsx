@@ -43,11 +43,13 @@ export function AdminLayout() {
   const sidebar = (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <span className="grid h-9 w-9 place-items-center rounded-full bg-forest text-cream">
-          <Blossom size={19} strokeWidth={1.05} />
-        </span>
+        <img
+          src="/logo.png"
+          alt="SAMHIN logo"
+          className="h-9 w-9 rounded-full object-cover ring-1 ring-forest/20"
+        />
         <div>
-          <p className="font-display text-lg leading-none text-forest">Hinga</p>
+          <p className="font-display text-lg leading-none text-forest">SAMHIN</p>
           <p className="mt-0.5 text-[0.65rem] uppercase tracking-widest text-ink-faint">Admin</p>
         </div>
       </div>
@@ -114,7 +116,7 @@ export function AdminLayout() {
               {current?.label || 'Admin'}
             </h1>
             <p className="truncate text-xs text-ink-faint">
-              Hinga plant studio · order management
+              SAMHIN · Your Nairobi Plant Haven
             </p>
           </div>
           <div className="ml-auto flex items-center gap-1.5">

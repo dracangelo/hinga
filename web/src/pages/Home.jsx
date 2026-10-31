@@ -73,6 +73,7 @@ const DEAL_SLUGS = [
 ];
 
 export function Home() {
+  const [deal, setDeal] = useState(null);
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -87,18 +88,29 @@ export function Home() {
       .finally(() => {
         if (active) setLoading(false);
       });
+
+    api
+      .dealOfTheDay()
+      .then((res) => {
+        if (active && res?.product) {
+          setDeal(res.product);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       active = false;
     };
   }, []);
 
-  const deal = useMemo(() => {
+  const activeDeal = useMemo(() => {
+    if (deal) return deal;
     const onSale = featured.filter((product) => product.compareAt > 0);
     const preferred = onSale.filter((product) => DEAL_SLUGS.includes(product.slug));
     const pool = preferred.length > 0 ? preferred : onSale;
     if (pool.length === 0) return featured[0] || FALLBACK_DEAL;
     return [...pool].sort((a, b) => b.discountPercent - a.discountPercent)[0];
-  }, [featured]);
+  }, [deal, featured]);
 
   return (
     <div>
@@ -112,7 +124,7 @@ export function Home() {
       <CategoryMosaic />
 
       {/* -------------------------- deal of day --------------------------- */}
-      <DealOfTheDay product={deal} />
+      <DealOfTheDay product={activeDeal} />
 
       {/* --------------------------- featured ----------------------------- */}
       <section className="bg-cream py-20 md:py-24">
@@ -208,7 +220,7 @@ export function Home() {
         <div className="mb-12 flex flex-col items-center text-center">
           <p className="eyebrow flex items-center gap-2.5">
             <span aria-hidden="true" className="h-px w-7 bg-clay/45" />
-            The Hinga promise
+            The SAMHIN promise
             <span aria-hidden="true" className="h-px w-7 bg-clay/45" />
           </p>
           <h2 className="section-title mt-3.5">
@@ -242,7 +254,7 @@ export function Home() {
                 What people <span className="accent">say</span>
               </>
             }
-            description="Over 2,300 verified reviews from people who sent a plant with Hinga."
+            description="Over 2,300 verified reviews from people who sent a plant with SAMHIN."
           />
           <div className="grid gap-5 md:grid-cols-3">
             {TESTIMONIALS.map((testimonial) => (

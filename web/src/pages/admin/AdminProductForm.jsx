@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, X, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Save, Plus, X, Image as ImageIcon, Upload, Trash2, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { Spinner } from '../../components/ui.jsx';
@@ -31,6 +31,8 @@ export function AdminProductForm() {
 
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const [uploadingMain, setUploadingMain] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -144,6 +146,62 @@ export function AdminProductForm() {
       ...current,
       [key]: current[key].filter((item) => item !== value),
     }));
+  };
+
+  const readFileAsDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleMainImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingMain(true);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const res = await api.uploadImage({
+        filename: file.name,
+        data: dataUrl,
+      });
+      setForm((prev) => ({ ...prev, image: res.url }));
+      setErrors((prev) => ({ ...prev, image: undefined }));
+      toast.success('Main image uploaded successfully');
+    } catch (err) {
+      toast.error(err.message || 'Image upload failed');
+    } finally {
+      setUploadingMain(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleGalleryUpload = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+    setUploadingGallery(true);
+    try {
+      let count = 0;
+      for (const file of files) {
+        const dataUrl = await readFileAsDataUrl(file);
+        const res = await api.uploadImage({
+          filename: file.name,
+          data: dataUrl,
+        });
+        setForm((prev) => ({
+          ...prev,
+          gallery: [...prev.gallery, res.url],
+        }));
+        count++;
+      }
+      toast.success(`${count} gallery ${count === 1 ? 'image' : 'images'} uploaded`);
+    } catch (err) {
+      toast.error(err.message || 'Gallery upload failed');
+    } finally {
+      setUploadingGallery(false);
+      event.target.value = '';
+    }
   };
 
   const validate = () => {
@@ -418,40 +476,143 @@ export function AdminProductForm() {
 
           <section className="card p-5">
             <h3 className="flex items-center gap-2 font-display text-lg text-ink">
-              <ImageIcon size={17} className="text-sage" /> Images
+              <ImageIcon size={17} className="text-sage" /> Product Images
             </h3>
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 space-y-5">
+              {/* Main image */}
               <div>
-                <label className="label" htmlFor="image">
-                  Main image URL
-                </label>
-                <input
-                  id="image"
-                  className="field"
-                  value={form.image}
-                  onChange={set('image')}
-                  placeholder="https://images.unsplash.com/photo-…"
-                />
-                {errors.image && <p className="mt-1 text-xs text-rose">{errors.image}</p>}
-                {form.image && (
-                  <img
-                    src={form.image}
-                    alt=""
-                    className="mt-3 h-32 w-full rounded-lg object-cover"
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none';
-                    }}
+                <div className="flex items-center justify-between">
+                  <label className="label mb-1" htmlFor="image">
+                    Main product image
+                  </label>
+                  {form.image && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, image: '' }))}
+                      className="text-xs text-rose hover:underline"
+                    >
+                      Clear image
+                    </button>
+                  )}
+                </div>
+
+                {/* Upload box */}
+                <div className="mt-1">
+                  <label className="relative flex min-h-[130px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sand/80 bg-cream/60 p-4 transition-colors hover:border-forest hover:bg-parchment/40">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleMainImageUpload}
+                      disabled={uploadingMain}
+                      className="sr-only"
+                    />
+                    {uploadingMain ? (
+                      <div className="flex flex-col items-center gap-2 text-forest">
+                        <Loader2 size={24} className="animate-spin" />
+                        <span className="text-xs font-medium">Uploading main image...</span>
+                      </div>
+                    ) : form.image ? (
+                      <div className="group relative flex w-full flex-col items-center">
+                        <img
+                          src={form.image}
+                          alt="Main preview"
+                          className="h-32 w-full max-w-xs rounded-xl object-cover shadow-sm"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <span className="mt-2 text-xs font-medium text-forest group-hover:underline">
+                          Click to choose a different image file
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1.5 text-center">
+                        <span className="grid h-10 w-10 place-items-center rounded-full bg-forest/10 text-forest">
+                          <Upload size={18} />
+                        </span>
+                        <p className="text-xs font-semibold text-forest">
+                          Click to upload an image from your device
+                        </p>
+                        <p className="text-[0.65rem] text-ink-faint">
+                          PNG, JPG, WEBP, or SVG
+                        </p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+
+                <div className="mt-2.5">
+                  <label htmlFor="image" className="text-[0.65rem] font-semibold uppercase tracking-wider text-ink-faint">
+                    Or enter image web URL:
+                  </label>
+                  <input
+                    id="image"
+                    className="field mt-0.5 text-xs"
+                    value={form.image}
+                    onChange={set('image')}
+                    placeholder="https://images.unsplash.com/photo-…"
                   />
-                )}
+                  {errors.image && <p className="mt-1 text-xs text-rose">{errors.image}</p>}
+                </div>
               </div>
 
-              <TagInput
-                label="Gallery"
-                values={form.gallery}
-                onAdd={(value) => addTag('gallery', value)}
-                onRemove={(value) => removeTag('gallery', value)}
-                placeholder="Paste an image URL"
-              />
+              {/* Gallery images */}
+              <div className="border-t border-sand/50 pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="label mb-0">Gallery images</span>
+                  <label className="btn btn-secondary btn-xs cursor-pointer inline-flex items-center gap-1">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleGalleryUpload}
+                      disabled={uploadingGallery}
+                      className="sr-only"
+                    />
+                    {uploadingGallery ? (
+                      <>
+                        <Loader2 size={12} className="animate-spin" /> Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={12} /> Upload files
+                      </>
+                    )}
+                  </label>
+                </div>
+
+                {/* Gallery thumbnail preview */}
+                {form.gallery?.length > 0 && (
+                  <div className="mb-3 grid grid-cols-3 gap-2">
+                    {form.gallery.map((url, idx) => (
+                      <div key={idx} className="group relative aspect-square overflow-hidden rounded-xl border border-sand/70 bg-cream">
+                        <img src={url} alt="" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              gallery: prev.gallery.filter((_, i) => i !== idx),
+                            }))
+                          }
+                          className="absolute right-1 top-1 rounded-full bg-forest/85 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-rose"
+                          title="Remove image"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <TagInput
+                  label="Add URL to gallery"
+                  values={form.gallery}
+                  onAdd={(value) => addTag('gallery', value)}
+                  onRemove={(value) => removeTag('gallery', value)}
+                  placeholder="Paste an image URL"
+                />
+              </div>
             </div>
           </section>
         </div>

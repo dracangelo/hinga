@@ -1,7 +1,46 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  scryptSync,
+  timingSafeEqual,
+} from 'node:crypto';
 
 const SECRET = process.env.JWT_SECRET || 'hinga-dev-secret-change-me';
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
+
+/*
+ * Administrator self-sign-up is gated behind a shared access code. Set
+ * ADMIN_SIGNUP_CODE to enable it; outside production a development fallback is
+ * used so the feature works straight after `npm run dev`.
+ */
+const IS_PRODUCTION =
+  process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+
+const DEV_ADMIN_SIGNUP_CODES = ['samhin-admin', 'hinga-admin'];
+
+export function adminSignupCode() {
+  const configured = String(process.env.ADMIN_SIGNUP_CODE || '').trim();
+  if (configured) return configured;
+  return IS_PRODUCTION ? '' : 'samhin-admin';
+}
+
+export function adminSignupEnabled() {
+  return Boolean(adminSignupCode());
+}
+
+export function verifyAdminSignupCode(candidate) {
+  const configured = String(process.env.ADMIN_SIGNUP_CODE || '').trim();
+  const input = String(candidate || '').trim();
+  if (!input) return false;
+
+  const validCodes = configured ? [configured] : (IS_PRODUCTION ? [] : DEV_ADMIN_SIGNUP_CODES);
+  return validCodes.some((code) => {
+    const a = createHash('sha256').update(input).digest();
+    const b = createHash('sha256').update(code).digest();
+    return timingSafeEqual(a, b);
+  });
+}
 
 /* ------------------------------------------------------------------ */
 /* Password hashing                                                    */

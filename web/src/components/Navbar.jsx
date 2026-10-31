@@ -201,15 +201,17 @@ export function Navbar() {
       <div className="container-page">
         <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-3 md:h-[5.25rem]">
           <Link to="/" className="group flex shrink-0 items-center gap-3 justify-self-start">
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-forest text-cream ring-1 ring-forest/15 ring-offset-2 ring-offset-cream transition-transform duration-500 group-hover:rotate-45">
-              <Blossom size={21} strokeWidth={1.05} />
-            </span>
+            <img
+              src="/logo.png"
+              alt="SAMHIN logo"
+              className="h-11 w-11 rounded-full object-cover ring-1 ring-forest/20 ring-offset-2 ring-offset-cream transition-transform duration-500 group-hover:scale-105"
+            />
             <span className="leading-none">
               <span className="block font-display text-[1.6rem] font-medium leading-none tracking-tight text-forest">
-                Hinga
+                SAMHIN
               </span>
               <span className="mt-1 hidden text-[0.5rem] font-medium uppercase tracking-[0.3em] text-clay/80 sm:block">
-                Plant studio · Nairobi
+                Your Nairobi Plant Haven
               </span>
             </span>
           </Link>
@@ -390,6 +392,13 @@ export function Navbar() {
                         className="block px-4 py-2.5 text-sm text-ink-soft transition-colors hover:bg-parchment hover:text-forest"
                       >
                         Create an account
+                      </Link>
+                      <div className="my-1 border-t border-sand/70" />
+                      <Link
+                        to="/admin/login"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink-soft transition-colors hover:bg-parchment hover:text-forest"
+                      >
+                        <LayoutDashboard size={15} /> Admin sign in
                       </Link>
                     </>
                   )}

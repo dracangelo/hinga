@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import { writeFile, mkdir } from 'node:fs/promises';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { db, tx } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import {
@@ -20,6 +23,11 @@ import {
 import { itemsFor } from './orders.js';
 
 const router = Router();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const SERVER_UPLOADS_DIR = join(__dirname, '..', '..', 'uploads');
+const WEB_UPLOADS_DIR = join(__dirname, '..', '..', '..', 'web', 'public', 'uploads');
 
 router.use(requireAdmin);
 
@@ -825,6 +833,119 @@ router.delete('/reviews/:id', (req, res) => {
     review.product_id,
   );
   res.json({ ok: true });
+});
+
+/* ------------------------------------------------------------------ */
+/* Deal of the Day                                                     */
+/* ------------------------------------------------------------------ */
+
+router.get('/deal-of-the-day', (_req, res) => {
+  const row = db.prepare("SELECT value FROM settings WHERE key = 'deal_of_the_day'").get();
+  let deal = null;
+  if (row?.value) {
+    try {
+      deal = JSON.parse(row.value);
+    } catch {
+      deal = null;
+    }
+  }
+
+  let product = null;
+  if (deal?.productId) {
+    const p = db.prepare('SELECT * FROM products WHERE id = ?').get(deal.productId);
+    if (p) product = productPayload(p);
+  }
+
+  res.json({ deal, product });
+});
+
+router.put('/deal-of-the-day', (req, res) => {
+  const productId = Number(req.body?.productId);
+  if (!productId) return res.status(400).json({ error: 'Please choose a product for the deal of the day' });
+
+  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(productId);
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+
+  const discountPercent = Math.max(1, Math.min(99, Number(req.body?.discountPercent) || 20));
+  const customTitle = String(req.body?.customTitle || '').trim();
+
+  const dealData = {
+    productId: product.id,
+    slug: product.slug,
+    discountPercent,
+    customTitle,
+    updatedAt: new Date().toISOString(),
+  };
+
+  db.prepare(
+    "INSERT INTO settings (key, value) VALUES ('deal_of_the_day', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+  ).run(JSON.stringify(dealData));
+
+  res.json({
+    ok: true,
+    message: `"${product.name}" is now the Deal of the Day!`,
+    deal: dealData,
+    product: productPayload(product),
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* File Upload                                                         */
+/* ------------------------------------------------------------------ */
+
+router.post('/upload', async (req, res) => {
+  const { data, filename = 'image.jpg' } = req.body || {};
+  if (!data || typeof data !== 'string') {
+    return res.status(400).json({ error: 'Image data is required' });
+  }
+
+  // Expect data URL: data:image/png;base64,...
+  const match = data.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+  if (!match) {
+    return res.status(400).json({ error: 'Invalid image format. Expected base64 data URL.' });
+  }
+
+  const rawExt = match[1].toLowerCase().replace('jpeg', 'jpg');
+  const allowed = ['jpg', 'png', 'webp', 'gif', 'svg+xml', 'svg'];
+  const ext = rawExt === 'svg+xml' ? 'svg' : rawExt;
+  if (!allowed.includes(ext)) {
+    return res.status(400).json({ error: 'Allowed image types: JPG, PNG, WEBP, GIF, SVG' });
+  }
+
+  const base64Data = match[2];
+  const buffer = Buffer.from(base64Data, 'base64');
+
+  if (buffer.length > 15 * 1024 * 1024) {
+    return res.status(400).json({ error: 'Image file must be under 15MB' });
+  }
+
+  const safeBase = filename
+    .toLowerCase()
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^a-z0-9_-]/g, '-')
+    .slice(0, 32) || 'upload';
+  const uniqueName = `${safeBase}-${Date.now()}.${ext}`;
+
+  try {
+    await mkdir(SERVER_UPLOADS_DIR, { recursive: true });
+    await writeFile(join(SERVER_UPLOADS_DIR, uniqueName), buffer);
+
+    try {
+      await mkdir(WEB_UPLOADS_DIR, { recursive: true });
+      await writeFile(join(WEB_UPLOADS_DIR, uniqueName), buffer);
+    } catch {
+      // web public uploads is optional in prod
+    }
+
+    res.json({
+      ok: true,
+      url: `/uploads/${uniqueName}`,
+      filename: uniqueName,
+    });
+  } catch (err) {
+    console.error('File upload failed:', err);
+    res.status(500).json({ error: 'Failed to save image file' });
+  }
 });
 
 export default router;

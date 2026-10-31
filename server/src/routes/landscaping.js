@@ -91,7 +91,6 @@ router.post('/', (req, res) => {
   if (!phone) errors.push('A phone number is required');
   if (!location) errors.push('Tell us where the site is');
   if (!landSize) errors.push('Approximate land size is required');
-  if (!flowers.length) errors.push('Pick at least one flower you would like planted');
   if (errors.length) return res.status(400).json({ error: errors[0], errors });
 
   const siteType = oneOf(b.siteType, SITE_TYPES, 'home-garden');

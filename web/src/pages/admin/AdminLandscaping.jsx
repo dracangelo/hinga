@@ -359,7 +359,7 @@ export function AdminLandscaping() {
                   </select>
                   <a
                     href={`mailto:${request.email}?subject=${encodeURIComponent(
-                      `Your Hinga garden quotation (${request.reference})`,
+                      `Your SAMHIN garden quotation (${request.reference})`,
                     )}`}
                     className="btn btn-secondary btn-sm ml-auto"
                   >

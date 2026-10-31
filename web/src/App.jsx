@@ -16,7 +16,7 @@ import { Checkout } from './pages/Checkout.jsx';
 import { OrderConfirmation } from './pages/OrderConfirmation.jsx';
 import { Account } from './pages/Account.jsx';
 import { Landscaping } from './pages/Landscaping.jsx';
-import { Login, Register } from './pages/Auth.jsx';
+import { Login, Register, AdminRegister } from './pages/Auth.jsx';
 import { AdminLayout } from './pages/admin/AdminLayout.jsx';
 
 const AdminDashboard = lazy(() =>
@@ -139,6 +139,22 @@ function AppRoutes() {
                 element={
                   <StorefrontLayout>
                     <Register />
+                  </StorefrontLayout>
+                }
+              />
+              <Route
+                path="/admin/login"
+                element={
+                  <StorefrontLayout>
+                    <Login adminMode />
+                  </StorefrontLayout>
+                }
+              />
+              <Route
+                path="/admin/register"
+                element={
+                  <StorefrontLayout>
+                    <AdminRegister />
                   </StorefrontLayout>
                 }
               />

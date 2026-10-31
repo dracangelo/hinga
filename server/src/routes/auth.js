@@ -1,11 +1,47 @@
 import { Router } from 'express';
 import { db } from '../db.js';
-import { requireAuth, signToken, hashPassword, verifyPassword } from '../auth.js';
+import {
+  adminSignupEnabled,
+  hashPassword,
+  requireAuth,
+  signToken,
+  verifyAdminSignupCode,
+  verifyPassword,
+} from '../auth.js';
 import { publicUser } from '../lib/helpers.js';
 
 const router = Router();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function sessionFor(user) {
+  return {
+    token: signToken({
+      sub: user.id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+    }),
+    user: publicUser(user),
+  };
+}
+
+function createAccount({ name, email, password, phone, role }) {
+  const info = db
+    .prepare(
+      'INSERT INTO users (name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?)',
+    )
+    .run(name, email, hashPassword(password), role, phone);
+
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
+}
+
+function validateDetails({ name, email, password }) {
+  if (!name) return 'Name is required';
+  if (!EMAIL_RE.test(email)) return 'Enter a valid email address';
+  if (password.length < 6) return 'Password must be at least 6 characters';
+  return null;
+}
 
 router.post('/register', (req, res) => {
   const name = String(req.body?.name || '').trim();
@@ -13,30 +49,51 @@ router.post('/register', (req, res) => {
   const password = String(req.body?.password || '');
   const phone = String(req.body?.phone || '').trim();
 
-  if (!name) return res.status(400).json({ error: 'Name is required' });
-  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Enter a valid email address' });
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
-  }
+  const invalid = validateDetails({ name, email, password });
+  if (invalid) return res.status(400).json({ error: invalid });
 
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (existing) return res.status(409).json({ error: 'An account with that email already exists' });
 
-  const info = db
-    .prepare(
-      'INSERT INTO users (name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?)',
-    )
-    .run(name, email, hashPassword(password), 'customer', phone);
+  const user = createAccount({ name, email, password, phone, role: 'customer' });
+  res.status(201).json(sessionFor(user));
+});
 
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
-  const token = signToken({
-    sub: user.id,
-    role: user.role,
-    name: user.name,
-    email: user.email,
-  });
+/*
+ * Administrators can create their own account when an access code is
+ * configured. The code is checked before validation so an invalid code never
+ * reveals which email addresses already exist.
+ */
+router.post('/admin/register', (req, res) => {
+  if (!adminSignupEnabled()) {
+    return res.status(503).json({
+      error:
+        'Administrator sign-up is disabled. Set ADMIN_SIGNUP_CODE on the server to enable it.',
+    });
+  }
 
-  res.status(201).json({ token, user: publicUser(user) });
+  const code = String(req.body?.adminCode ?? req.body?.inviteCode ?? '');
+  if (!verifyAdminSignupCode(code)) {
+    return res.status(403).json({ error: 'Incorrect administrator access code' });
+  }
+
+  const name = String(req.body?.name || '').trim();
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const password = String(req.body?.password || '');
+  const phone = String(req.body?.phone || '').trim();
+
+  const invalid = validateDetails({ name, email, password });
+  if (invalid) return res.status(400).json({ error: invalid });
+
+  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  if (existing) return res.status(409).json({ error: 'An account with that email already exists' });
+
+  const user = createAccount({ name, email, password, phone, role: 'admin' });
+  res.status(201).json(sessionFor(user));
+});
+
+router.get('/admin/signup-status', (_req, res) => {
+  res.json({ enabled: adminSignupEnabled() });
 });
 
 router.post('/login', (req, res) => {
@@ -48,14 +105,7 @@ router.post('/login', (req, res) => {
     return res.status(401).json({ error: 'Incorrect email or password' });
   }
 
-  const token = signToken({
-    sub: user.id,
-    role: user.role,
-    name: user.name,
-    email: user.email,
-  });
-
-  res.json({ token, user: publicUser(user) });
+  res.json(sessionFor(user));
 });
 
 router.get('/me', requireAuth, (req, res) => {

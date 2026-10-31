@@ -22,6 +22,7 @@ import {
   Spinner,
   StatusBadge,
 } from '../../components/ui.jsx';
+import { DealOfTheDayManager } from '../../components/admin/DealOfTheDayManager.jsx';
 import { compactMoney, formatDate, money, ORDER_STATUS_META } from '../../lib/format.js';
 
 /* Aggregates read better in whole shillings; order rows keep their cents. */
@@ -471,6 +472,9 @@ export function AdminDashboard() {
           </Link>
         </div>
       )}
+
+      {/* ----------------------- deal of the day ------------------------ */}
+      <DealOfTheDayManager />
 
       {/* ----------------------------- charts ----------------------------- */}
       <div className="grid gap-5 xl:grid-cols-[1.6fr_1fr]">

@@ -112,13 +112,15 @@ export function Footer() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-full border border-cream/25 text-cream">
-                <Blossom size={21} strokeWidth={1.05} />
-              </span>
-              <span className="font-display text-[1.7rem] leading-none text-cream">Hinga</span>
+              <img
+                src="/logo.png"
+                alt="SAMHIN logo"
+                className="h-11 w-11 rounded-full border border-cream/25 object-cover"
+              />
+              <span className="font-display text-[1.7rem] leading-none text-cream">SAMHIN</span>
             </Link>
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-cream/65">
-              A small plant studio in Nairobi. Every plant is potted by hand, watered the
+              Your Nairobi Plant Haven. Every plant is potted by hand, watered the
               morning it travels and sent out rooted — never cut — across Kenya.
             </p>
             <div className="mt-6 flex gap-2">
@@ -192,7 +194,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-cream/15 pt-6 text-xs text-cream/55 md:flex-row">
-          <p>© {new Date().getFullYear()} Hinga Plant Studio, Nairobi. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} SAMHIN — Your Nairobi Plant Haven. All rights reserved.</p>
           <p className="inline-flex items-center gap-2">
             <Blossom size={10} strokeWidth={0.9} className="text-cream/50" />
             Free delivery over KSh 7,500 · Nairobi same-day before 1pm

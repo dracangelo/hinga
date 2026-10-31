@@ -71,6 +71,8 @@ export const api = {
   /* auth */
   login: (body) => request('/auth/login', { method: 'POST', body, auth: false }),
   register: (body) => request('/auth/register', { method: 'POST', body, auth: false }),
+  adminRegister: (body) => request('/auth/admin/register', { method: 'POST', body, auth: false }),
+  adminSignupStatus: () => request('/auth/admin/signup-status', { auth: false }),
   me: () => request('/auth/me'),
   updateProfile: (body) => request('/auth/me', { method: 'PATCH', body }),
   addresses: () => request('/auth/addresses'),
@@ -79,6 +81,7 @@ export const api = {
 
   /* catalog */
   products: (params) => request(`/products${query(params)}`, { auth: false }),
+  dealOfTheDay: () => request('/products/deal-of-the-day', { auth: false }),
   product: (slug) => request(`/products/${slug}`, { auth: false }),
   categories: () => request('/categories', { auth: false }),
   facets: () => request('/products/facets', { auth: false }),
@@ -124,6 +127,9 @@ export const api = {
   deleteCoupon: (code) => request(`/admin/coupons/${code}`, { method: 'DELETE' }),
   adminReviews: () => request('/admin/reviews'),
   deleteReview: (id) => request(`/admin/reviews/${id}`, { method: 'DELETE' }),
+  adminGetDeal: () => request('/admin/deal-of-the-day'),
+  adminSetDeal: (body) => request('/admin/deal-of-the-day', { method: 'PUT', body }),
+  uploadImage: (body) => request('/admin/upload', { method: 'POST', body }),
 
   /* landscaping */
   requestQuotation: (body) => request('/landscaping', { method: 'POST', body }),

@@ -6,7 +6,7 @@ import { Blossom } from '../ui.jsx';
 
 const SLIDES = [
   {
-    eyebrow: 'Welcome to Hinga',
+    eyebrow: 'Welcome to SAMHIN',
     title: 'Plants that settle in and stay',
     accent: 'stay',
     body: 'Flowering plants, foliage and succulents, potted by hand in our Nairobi studio and delivered rooted, watered and ready for the windowsill.',
@@ -22,13 +22,13 @@ const SLIDES = [
     eyebrow: 'In bloom now',
     title: 'Flowers that keep on flowering',
     accent: 'keep',
-    body: 'Hydrangeas, kalanchoe and cyclamen already in bud and bloom — a gift that is still going weeks after the day itself.',
+    body: 'Hydrangeas, kalanchoe and roses already in bud and bloom — a gift that is still going weeks after the day itself.',
     cta: { label: 'Shop flowering plants', to: '/shop?category=flowering-plants' },
     image: PEX(5362009, 1600),
     links: [
       { label: 'Hydrangeas', to: '/shop?category=flowering-plants&q=hydrangea' },
       { label: 'Kalanchoe', to: '/shop?category=flowering-plants&q=kalanchoe' },
-      { label: 'Cyclamen', to: '/shop?category=flowering-plants&q=cyclamen' },
+      { label: 'Roses', to: '/shop?category=flowering-plants&q=rose' },
     ],
   },
   {

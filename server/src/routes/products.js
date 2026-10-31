@@ -119,6 +119,64 @@ router.get('/facets', (_req, res) => {
   });
 });
 
+router.get('/deal-of-the-day', (_req, res) => {
+  const row = db.prepare("SELECT value FROM settings WHERE key = 'deal_of_the_day'").get();
+  let deal = null;
+  if (row?.value) {
+    try {
+      deal = JSON.parse(row.value);
+    } catch {
+      deal = null;
+    }
+  }
+
+  let product = null;
+  if (deal?.productId) {
+    const p = db.prepare('SELECT * FROM products WHERE id = ? AND active = 1').get(deal.productId);
+    if (p) product = productPayload(p);
+  } else if (deal?.slug) {
+    const p = db.prepare('SELECT * FROM products WHERE slug = ? AND active = 1').get(deal.slug);
+    if (p) product = productPayload(p);
+  }
+
+  if (!product) {
+    const onSale = db
+      .prepare(
+        'SELECT * FROM products WHERE active = 1 AND compare_at_cents > 0 ORDER BY (compare_at_cents - price_cents) DESC LIMIT 1',
+      )
+      .get();
+    if (onSale) product = productPayload(onSale);
+    else {
+      const anyP = db
+        .prepare('SELECT * FROM products WHERE active = 1 ORDER BY featured DESC, id DESC LIMIT 1')
+        .get();
+      if (anyP) product = productPayload(anyP);
+    }
+  }
+
+  if (!product) return res.status(404).json({ error: 'No product available for deal of the day' });
+
+  let compareAt = product.compareAt;
+  let discountPercent = product.discountPercent;
+
+  if (deal?.discountPercent) {
+    discountPercent = Number(deal.discountPercent);
+    compareAt = Math.round(product.price * (1 + discountPercent / 100));
+  } else if (!compareAt || compareAt <= product.price) {
+    discountPercent = 15;
+    compareAt = Math.round(product.price * 1.15);
+  }
+
+  res.json({
+    product: {
+      ...product,
+      compareAt,
+      discountPercent: Math.max(1, Math.round(((compareAt - product.price) / compareAt) * 100)),
+    },
+    dealSettings: deal || null,
+  });
+});
+
 router.get('/:slug', (req, res) => {
   const row = db.prepare('SELECT * FROM products WHERE slug = ? AND active = 1').get(req.params.slug);
   if (!row) return res.status(404).json({ error: 'Product not found' });

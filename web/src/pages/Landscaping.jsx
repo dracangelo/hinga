@@ -6,6 +6,7 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  FileText,
   Flower2,
   Leaf,
   MapPin,
@@ -19,7 +20,6 @@ import { Blossom, ImageWithFallback, SectionHeading, Sprig } from '../components
 import { IMG } from '../lib/catalog.js';
 import {
   BUDGETS,
-  FLOWER_OPTIONS,
   SITE_TYPES,
   TIMELINES,
   labelFor,
@@ -51,7 +51,7 @@ const SERVICES = [
 const STEPS = [
   {
     label: 'Share the site',
-    copy: 'Land size, location and the flowers you love. Photos help, but are not essential.',
+    copy: 'Land size, location and notes on your space. Photos help, but are not essential.',
   },
   {
     label: 'Site visit',
@@ -76,7 +76,6 @@ const EMPTY_FORM = {
   siteType: 'home-garden',
   timeline: 'within-a-month',
   budget: 'unsure',
-  otherFlowers: '',
   notes: '',
 };
 
@@ -86,7 +85,6 @@ export function Landscaping() {
   const location = useLocation();
   const formRef = useRef(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [flowers, setFlowers] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(null);
@@ -114,13 +112,6 @@ export function Landscaping() {
     setError('');
   };
 
-  const toggleFlower = (flower) => {
-    setFlowers((current) =>
-      current.includes(flower) ? current.filter((item) => item !== flower) : [...current, flower],
-    );
-    setError('');
-  };
-
   const goToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setTimeout(() => formRef.current?.querySelector('input')?.focus({ preventScroll: true }), 500);
@@ -133,7 +124,6 @@ export function Landscaping() {
       email: user?.email || '',
       phone: user?.phone || '',
     });
-    setFlowers([]);
     setError('');
     setSent(null);
     setTimeout(goToForm, 80);
@@ -141,15 +131,6 @@ export function Landscaping() {
 
   const submit = async (event) => {
     event.preventDefault();
-    const chosen = [...flowers];
-    const other = form.otherFlowers.trim();
-    if (other) chosen.push(other);
-
-    if (!chosen.length) {
-      setError('Pick at least one flower you would like planted, or tell us in the notes.');
-      return;
-    }
-
     setBusy(true);
     setError('');
     try {
@@ -160,7 +141,7 @@ export function Landscaping() {
         location: form.location,
         landSize: form.landSize,
         siteType: form.siteType,
-        preferredFlowers: chosen,
+        preferredFlowers: [],
         timeline: form.timeline,
         budget: form.budget,
         notes: form.notes,
@@ -346,8 +327,8 @@ export function Landscaping() {
               Tell us about the <span className="accent">ground</span>
             </h2>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-soft">
-              Three things are enough to start: how big the ground is, where it is, and the flowers
-              you would love to see in it. We will take it from there.
+              Three things are enough to start: how big the ground is, where it is, and your vision
+              for the space. We will take it from there.
             </p>
 
             <ul className="mt-8 space-y-4">
@@ -363,9 +344,9 @@ export function Landscaping() {
                   copy: 'The estate, town or county — it tells us about rainfall and soil.',
                 },
                 {
-                  icon: Flower2,
-                  title: 'Preferred flowers',
-                  copy: 'Pick from our palette or describe your own. Colour notes are welcome.',
+                  icon: FileText,
+                  title: 'Site brief & notes',
+                  copy: 'Tell us how you plan to use the space, sunlight, water access and timeline.',
                 },
               ].map((item) => (
                 <li key={item.title} className="flex gap-3.5">
@@ -425,25 +406,23 @@ export function Landscaping() {
                       <dd className="mt-1 text-sm text-ink">{row.value || '—'}</dd>
                     </div>
                   ))}
-                  <div className="sm:col-span-2">
-                    <dt className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-ink-faint">
-                      Preferred flowers
-                    </dt>
-                    <dd className="mt-2 flex flex-wrap gap-1.5">
-                      {sent.preferredFlowers.length ? (
-                        sent.preferredFlowers.map((flower) => (
+                  {sent.preferredFlowers && sent.preferredFlowers.length > 0 && (
+                    <div className="sm:col-span-2">
+                      <dt className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                        Preferred flowers
+                      </dt>
+                      <dd className="mt-2 flex flex-wrap gap-1.5">
+                        {sent.preferredFlowers.map((flower) => (
                           <span
                             key={flower}
                             className="inline-flex items-center gap-1.5 rounded-full border border-sand bg-parchment/70 px-2.5 py-1 text-[0.72rem] text-forest"
                           >
                             <Flower2 size={11} /> {flower}
                           </span>
-                        ))
-                      ) : (
-                        <span className="text-sm text-ink-soft">Open to suggestions</span>
-                      )}
-                    </dd>
-                  </div>
+                        ))}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
 
                 <div className="mt-6 rounded-[1.15rem] border border-sand/80 bg-parchment/60 p-5">
@@ -595,42 +574,6 @@ export function Landscaping() {
                   Planting brief
                   <span className="h-px flex-1 bg-sand" />
                 </legend>
-
-                <p className="label">Preferred flowers</p>
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Preferred flowers">
-                  {FLOWER_OPTIONS.map((flower) => {
-                    const active = flowers.includes(flower);
-                    return (
-                      <button
-                        key={flower}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() => toggleFlower(flower)}
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[0.78rem] transition-colors ${
-                          active
-                            ? 'border-forest bg-forest text-cream'
-                            : 'border-sand bg-white text-ink-soft hover:border-sage hover:text-forest'
-                        }`}
-                      >
-                        {active ? <Check size={12} /> : <Flower2 size={12} strokeWidth={1.7} />}
-                        {flower}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4">
-                  <label className="label" htmlFor="ls-other">
-                    Other flowers or colours
-                  </label>
-                  <input
-                    id="ls-other"
-                    className="field"
-                    value={form.otherFlowers}
-                    onChange={set('otherFlowers')}
-                    placeholder="e.g. white frangipani, soft pinks, something fragrant"
-                  />
-                </div>
 
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div>

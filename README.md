@@ -1,4 +1,4 @@
-# Hinga — Plant Studio
+# SAMHIN — Your Nairobi Plant Haven
 
 A full-stack e-commerce plant studio: a customer-facing storefront for potted plants and
 flowering houseplants, plus an admin panel for running orders, products, customers, coupons
@@ -20,17 +20,11 @@ npm run dev          # API on :4000, storefront on :5173
 
 Open <http://localhost:5173>.
 
-### Demo accounts
+### Accounts & Administration
 
-| Role     | Email                 | Password      |
-| -------- | --------------------- | ------------- |
-| Admin    | `admin@hinga.shop`    | `admin1234`   |
-| Customer | `wanjiru@example.com`  | `customer123` |
-
-All eight seeded customers (`brian@example.com`, `aisha@example.com`, `kevin@example.com`,
-`faith@example.com`, `njeri@example.com`, `hassan@example.com`, `mercy@example.com`) use the
-password `customer123`. The admin panel lives at `/admin` and is guarded — non-admins are
-redirected to the storefront.
+- **Customer registration & login**: Customers can sign up directly on `/register` and sign in on `/login`.
+- **Administrator login**: Administrators can sign in directly at `/admin/login` or via the "Store administrator" tab on `/login`. When an admin signs in, they are automatically directed to `/admin`.
+- **Administrator registration**: Gated behind `ADMIN_SIGNUP_CODE` at `/admin/register`. In development, this defaults to `samhin-admin` (and `hinga-admin`). In production, configure your own secret code in your environment variables.
 
 ## Scripts
 
@@ -54,6 +48,7 @@ Copy `.env.example` to `.env` in the repo root — the server loads it automatic
 | `JWT_SECRET`   | `hinga-dev-secret-change-me`  | Token signing key — **set this in prod** |
 | `DB_PATH`      | `server/data/hinga.db`        | SQLite file location                     |
 | `CORS_ORIGIN`  | any origin                    | Allowed browser origin                   |
+| `ADMIN_SIGNUP_CODE` | `samhin-admin` (dev only) | Shared code required to sign up as an administrator. Unset in production disables admin sign-up. |
 
 ## Architecture
 
@@ -106,7 +101,9 @@ All endpoints are prefixed with `/api`. Authenticated routes expect
 | POST   | `/orders/coupon/validate`        | Validate a promo code                        |
 | POST   | `/newsletter`                    | Join the newsletter                          |
 | POST   | `/auth/login`                    | Sign in                                      |
-| POST   | `/auth/register`                 | Create an account                            |
+| POST   | `/auth/register`                 | Create a customer account                    |
+| POST   | `/auth/admin/register`           | Create an admin account *(access code)*      |
+| GET    | `/auth/admin/signup-status`      | Whether admin sign-up is enabled             |
 
 ### Authenticated
 

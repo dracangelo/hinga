@@ -13,12 +13,12 @@ export const DEFAULT_CATEGORIES = [
   {
     name: 'Flowering plants',
     slug: 'flowering-plants',
-    description: 'In bloom now — hydrangeas, kalanchoe and cyclamen.',
+    description: 'In bloom now — hydrangeas, kalanchoe and roses.',
     image: PEX(37397030, 900),
     links: [
       { label: 'Hydrangeas', to: '/shop?category=flowering-plants&q=hydrangea' },
       { label: 'Kalanchoe', to: '/shop?category=flowering-plants&q=kalanchoe' },
-      { label: 'Cyclamen', to: '/shop?category=flowering-plants&q=cyclamen' },
+      { label: 'Roses', to: '/shop?category=flowering-plants&q=rose' },
       { label: 'Best sellers', to: '/shop?category=flowering-plants&sort=popular' },
     ],
   },
@@ -61,12 +61,12 @@ export const DEFAULT_CATEGORIES = [
   {
     name: 'Herbs & edibles',
     slug: 'herbs-edibles',
-    description: 'Kitchen herbs, citrus trees and bay topiary.',
+    description: 'Kitchen herbs, citrus trees and mints.',
     image: PEX(2073001, 900),
     links: [
       { label: 'Kitchen herbs', to: '/shop?category=herbs-edibles&q=herb' },
       { label: 'Lemon trees', to: '/shop?category=herbs-edibles&q=lemon' },
-      { label: 'Topiary', to: '/shop?category=herbs-edibles&q=topiary' },
+      { label: 'Mints', to: '/shop?category=herbs-edibles&q=mint' },
       { label: 'Best sellers', to: '/shop?category=herbs-edibles&sort=popular' },
     ],
   },

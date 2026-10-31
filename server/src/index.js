@@ -5,7 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 
-import { attachUser } from './auth.js';
+import { adminSignupEnabled, attachUser } from './auth.js';
 import authRoutes from './routes/auth.js';
 import productRoutes from './routes/products.js';
 import categoryRoutes from './routes/categories.js';
@@ -20,8 +20,9 @@ const PORT = Number(process.env.PORT) || 4000;
 const app = express();
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '25mb' }));
 app.use(attachUser);
+app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'hinga-api', time: new Date().toISOString() });
@@ -62,5 +63,8 @@ if (existsSync(webDist)) {
 
 app.listen(PORT, () => {
   console.log(`\n  Hinga API listening on http://localhost:${PORT}`);
-  console.log(`  Admin login: admin@hinga.shop / admin1234\n`);
+  console.log(`  Admin login: admin@hinga.shop / admin1234`);
+  console.log(
+    `  Admin sign-up: ${adminSignupEnabled() ? 'enabled' : 'disabled (set ADMIN_SIGNUP_CODE to enable)'}\n`,
+  );
 });

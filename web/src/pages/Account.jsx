@@ -435,7 +435,7 @@ export function Account() {
                               >
                                 <p className="flex flex-wrap items-baseline gap-x-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-ink-faint">
                                   <span className={fromStudio ? 'text-forest' : 'text-ink-soft'}>
-                                    {fromStudio ? 'Hinga garden team' : 'You'}
+                                    {fromStudio ? 'SAMHIN garden team' : 'You'}
                                   </span>
                                   <span className="font-normal normal-case tracking-normal">
                                     {formatDate(message.createdAt)}
@@ -574,7 +574,7 @@ export function Account() {
       {tab === 'profile' && (
         <section className="mt-5 max-w-3xl card-petal rounded-tl-[1.75rem] rounded-br-[1.75rem] rounded-tr-[0.8rem] rounded-bl-[0.8rem] p-5 md:p-7">
           <p className="eyebrow">Appearance</p>
-          <h2 className="mt-2 font-display text-2xl text-forest">How Hinga looks</h2>
+          <h2 className="mt-2 font-display text-2xl text-forest">How SAMHIN looks</h2>
           <p className="mt-1.5 max-w-lg text-sm text-ink-soft">
             Kept on this browser only. Choose system to follow your device's light or dark setting as
             it changes through the day.
