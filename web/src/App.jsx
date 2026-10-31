@@ -18,6 +18,8 @@ import { Account } from './pages/Account.jsx';
 import { Landscaping } from './pages/Landscaping.jsx';
 import { Login, Register, AdminRegister } from './pages/Auth.jsx';
 import { AdminLayout } from './pages/admin/AdminLayout.jsx';
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const AdminDashboard = lazy(() =>
   import('./pages/admin/Dashboard.jsx').then((m) => ({ default: m.AdminDashboard })),
