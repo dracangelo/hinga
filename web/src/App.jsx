@@ -320,6 +320,8 @@ export default function App() {
   return (
     <ThemeProvider>
       <AppRoutes />
+      <Analytics />
+      <SpeedInsights />
     </ThemeProvider>
   );
 }
