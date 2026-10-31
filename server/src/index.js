@@ -3,7 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 
 import { adminSignupEnabled, attachUser } from './auth.js';
 import authRoutes from './routes/auth.js';
@@ -14,6 +15,17 @@ import orderRoutes from './routes/orders.js';
 import landscapingRoutes from './routes/landscaping.js';
 import adminRoutes from './routes/admin.js';
 import { db } from './db.js';
+import { seed } from './seed.js';
+
+// Auto-seed on cold start if database is empty (e.g. fresh Vercel /tmp instance)
+try {
+  const productCount = db.prepare('SELECT COUNT(*) AS count FROM products').get()?.count || 0;
+  if (productCount === 0) {
+    seed();
+  }
+} catch (e) {
+  console.warn('Auto-seed skipped or failed:', e);
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 4000;
@@ -22,7 +34,14 @@ const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
 app.use(express.json({ limit: '25mb' }));
 app.use(attachUser);
-app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
+
+const uploadsDir = process.env.VERCEL
+  ? join(tmpdir(), 'uploads')
+  : join(__dirname, '..', 'uploads');
+try {
+  mkdirSync(uploadsDir, { recursive: true });
+} catch {}
+app.use('/uploads', express.static(uploadsDir));
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'hinga-api', time: new Date().toISOString() });
@@ -61,10 +80,14 @@ if (existsSync(webDist)) {
   app.get(/.*/, (_req, res) => res.sendFile(join(webDist, 'index.html')));
 }
 
-app.listen(PORT, () => {
-  console.log(`\n  Hinga API listening on http://localhost:${PORT}`);
-  console.log(`  Admin login: admin@hinga.shop / admin1234`);
-  console.log(
-    `  Admin sign-up: ${adminSignupEnabled() ? 'enabled' : 'disabled (set ADMIN_SIGNUP_CODE to enable)'}\n`,
-  );
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`\n  Hinga API listening on http://localhost:${PORT}`);
+    console.log(`  Admin login: admin@hinga.shop / admin1234`);
+    console.log(
+      `  Admin sign-up: ${adminSignupEnabled() ? 'enabled' : 'disabled (set ADMIN_SIGNUP_CODE to enable)'}\n`,
+    );
+  });
+}
+
+export default app;

@@ -21,7 +21,7 @@
     "concurrently": "^9.1.2"
   },
   "engines": {
-    "node": ">=22.5.0"
+    "node": "22.x"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

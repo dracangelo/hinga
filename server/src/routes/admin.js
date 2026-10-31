@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 import { db, tx } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import {
@@ -26,8 +27,12 @@ const router = Router();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const SERVER_UPLOADS_DIR = join(__dirname, '..', '..', 'uploads');
-const WEB_UPLOADS_DIR = join(__dirname, '..', '..', '..', 'web', 'public', 'uploads');
+const SERVER_UPLOADS_DIR = process.env.VERCEL
+  ? join(tmpdir(), 'uploads')
+  : join(__dirname, '..', '..', 'uploads');
+const WEB_UPLOADS_DIR = process.env.VERCEL
+  ? join(tmpdir(), 'uploads')
+  : join(__dirname, '..', '..', '..', 'web', 'public', 'uploads');
 
 router.use(requireAdmin);
 
