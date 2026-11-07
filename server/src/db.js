@@ -4,19 +4,6 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_CATEGORIES } from './lib/categories.js';
 
-let DatabaseSync;
-try {
-  const sqliteModule = await import('node:sqlite');
-  DatabaseSync = sqliteModule.DatabaseSync;
-} catch (err) {
-  console.error(
-    `[DB CRITICAL] Cannot load 'node:sqlite' on Node ${process.version}. ` +
-    `Please set Node.js Version to "22.x" in Vercel Project Settings -> General -> Node.js Version.`,
-    err,
-  );
-  throw err;
-}
-
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export const DATA_DIR = join(__dirname, '..', 'data');
@@ -27,6 +14,22 @@ const SERVERLESS = Boolean(
   process.env.NOW_REGION,
 );
 
+/*
+ * Durable storage.
+ *
+ * A serverless host gives the API a read-only filesystem plus a per-instance
+ * /tmp, so every cold start used to begin with an empty database: an account
+ * registered a minute earlier was gone and the customer had to sign up again.
+ * With TURSO_DATABASE_URL and TURSO_AUTH_TOKEN set, all data lives in a hosted
+ * libSQL/Turso database instead and survives restarts and new instances.
+ * Without them the API uses a local SQLite file, which is what development and
+ * long-running servers want.
+ */
+const REMOTE_URL = String(process.env.TURSO_DATABASE_URL || process.env.LIBSQL_URL || '').trim();
+const REMOTE_TOKEN = String(process.env.TURSO_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN || '').trim();
+
+export const DB_MODE = REMOTE_URL ? 'remote' : 'local';
+
 export const DB_PATH = SERVERLESS
   ? (process.env.DB_PATH && process.env.DB_PATH.startsWith('/tmp')
       ? resolve(process.env.DB_PATH)
@@ -35,16 +38,75 @@ export const DB_PATH = SERVERLESS
       ? resolve(process.env.DB_PATH)
       : join(DATA_DIR, 'hinga.db'));
 
-try {
-  mkdirSync(dirname(DB_PATH), { recursive: true });
-} catch {
-  /* Ignore EROFS or existing directory */
+/** Where the data actually lives — reported by /api/health for debugging. */
+export const DB_TARGET = REMOTE_URL || DB_PATH;
+
+if (!REMOTE_URL) {
+  try {
+    mkdirSync(dirname(DB_PATH), { recursive: true });
+  } catch {
+    /* Ignore EROFS or existing directory */
+  }
 }
 
-export const db = new DatabaseSync(DB_PATH);
+/*
+ * libSQL keeps the better-sqlite3 API (prepare/get/all/run/exec) the rest of the
+ * server is written against, and it can open a remote database too. The
+ * built-in node:sqlite driver is the fallback if libSQL cannot load on the host.
+ */
+async function openDatabase() {
+  if (REMOTE_URL) {
+    const { default: Libsql } = await import('libsql');
+    return { raw: new Libsql(REMOTE_URL, { authToken: REMOTE_TOKEN }), driver: 'libsql' };
+  }
 
-db.exec(SERVERLESS ? 'PRAGMA journal_mode = MEMORY' : 'PRAGMA journal_mode = WAL');
-db.exec('PRAGMA foreign_keys = ON');
+  try {
+    const { default: Libsql } = await import('libsql');
+    const raw = new Libsql(DB_PATH);
+    raw.exec('PRAGMA journal_mode = WAL');
+    return { raw, driver: 'libsql' };
+  } catch (err) {
+    console.warn(`[DB] libSQL unavailable (${err.message}); falling back to node:sqlite.`);
+    const { DatabaseSync } = await import('node:sqlite');
+    const raw = new DatabaseSync(DB_PATH);
+    raw.exec(SERVERLESS ? 'PRAGMA journal_mode = MEMORY' : 'PRAGMA journal_mode = WAL');
+    return { raw, driver: 'node:sqlite' };
+  }
+}
+
+const connection = await openDatabase();
+
+const raw = connection.raw;
+
+export const DB_DRIVER = connection.driver;
+
+/* libSQL attaches an internal `_metadata` object to rows; strip it so payloads
+ * and camel()/snake() helpers only see real columns. */
+function plainRow(row) {
+  if (!row || typeof row !== 'object' || !('_metadata' in row)) return row;
+  const { _metadata, ...rest } = row;
+  return rest;
+}
+
+export const db = {
+  prepare(sql) {
+    const statement = raw.prepare(sql);
+    return {
+      get: (...args) => plainRow(statement.get(...args)),
+      all: (...args) => statement.all(...args).map(plainRow),
+      run: (...args) => statement.run(...args),
+    };
+  },
+  exec(sql) {
+    return raw.exec(sql);
+  },
+};
+
+try {
+  db.exec('PRAGMA foreign_keys = ON');
+} catch {
+  /* Not every remote backend accepts PRAGMA statements. */
+}
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
@@ -217,6 +279,14 @@ CREATE TABLE IF NOT EXISTS landscaping_messages (
 CREATE TABLE IF NOT EXISTS settings (
   key        TEXT PRIMARY KEY,
   value      TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS uploads (
+  name       TEXT PRIMARY KEY,
+  mime       TEXT NOT NULL DEFAULT 'application/octet-stream',
+  size       INTEGER NOT NULL DEFAULT 0,
+  data       BLOB NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);

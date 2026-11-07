@@ -14,7 +14,7 @@ import cartRoutes from './routes/cart.js';
 import orderRoutes from './routes/orders.js';
 import landscapingRoutes from './routes/landscaping.js';
 import adminRoutes from './routes/admin.js';
-import { db, DB_PATH } from './db.js';
+import { db, DB_DRIVER, DB_MODE, DB_TARGET } from './db.js';
 import { seed } from './seed.js';
 
 // Auto-seed on cold start if database is empty (e.g. fresh Vercel /tmp instance)
@@ -38,7 +38,7 @@ const IS_SERVERLESS = Boolean(
 );
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '6mb' }));
 app.use(attachUser);
 
 const uploadsDir = IS_SERVERLESS
@@ -48,6 +48,27 @@ try {
   mkdirSync(uploadsDir, { recursive: true });
 } catch {}
 app.use('/uploads', express.static(uploadsDir));
+
+/*
+ * Uploaded product images are stored in the database (see POST /api/admin/upload)
+ * so they survive restarts and are visible to every instance. Static files above
+ * still cover uploads made before that change.
+ */
+app.get('/uploads/:name', (req, res) => {
+  let image = null;
+  try {
+    image = db.prepare('SELECT mime, data FROM uploads WHERE name = ?').get(req.params.name);
+  } catch {
+    image = null;
+  }
+  if (!image) return res.status(404).json({ error: 'Image not found' });
+
+  const bytes = Buffer.from(image.data);
+  res.set('Content-Type', image.mime || 'application/octet-stream');
+  res.set('Content-Length', String(bytes.length));
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.end(bytes);
+});
 
 const apiRouter = express.Router();
 
@@ -63,7 +84,9 @@ apiRouter.get('/health', (_req, res) => {
     node: process.version,
     env: process.env.NODE_ENV || 'development',
     serverless: IS_SERVERLESS,
-    dbPath: DB_PATH,
+    dbMode: DB_MODE,
+    dbDriver: DB_DRIVER,
+    dbTarget: DB_TARGET,
     products: productCount,
   });
 });

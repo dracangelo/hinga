@@ -1,8 +1,4 @@
 import { Router } from 'express';
-import { writeFile, mkdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { tmpdir } from 'node:os';
 import { db, tx } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import {
@@ -24,20 +20,6 @@ import {
 import { itemsFor } from './orders.js';
 
 const router = Router();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const SERVERLESS = Boolean(
-  process.env.VERCEL ||
-  process.env.AWS_LAMBDA_FUNCTION_NAME ||
-  process.env.NOW_REGION,
-);
-const SERVER_UPLOADS_DIR = SERVERLESS
-  ? join(tmpdir(), 'uploads')
-  : join(__dirname, '..', '..', 'uploads');
-const WEB_UPLOADS_DIR = SERVERLESS
-  ? join(tmpdir(), 'uploads')
-  : join(__dirname, '..', '..', '..', 'web', 'public', 'uploads');
 
 router.use(requireAdmin);
 
@@ -903,7 +885,24 @@ router.put('/deal-of-the-day', (req, res) => {
 /* File Upload                                                         */
 /* ------------------------------------------------------------------ */
 
-router.post('/upload', async (req, res) => {
+/*
+ * Vercel caps a function's request body at 4.5 MB, and base64 adds a third on
+ * top, so an image has to stay around 3 MB to reach this route at all. The
+ * admin panel resizes before uploading; this is the backstop.
+ */
+const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
+
+const MIME_BY_EXT = {
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  svg: 'image/svg+xml',
+};
+
+const readableSize = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+router.post('/upload', (req, res) => {
   const { data, filename = 'image.jpg' } = req.body || {};
   if (!data || typeof data !== 'string') {
     return res.status(400).json({ error: 'Image data is required' });
@@ -922,11 +921,12 @@ router.post('/upload', async (req, res) => {
     return res.status(400).json({ error: 'Allowed image types: JPG, PNG, WEBP, GIF, SVG' });
   }
 
-  const base64Data = match[2];
-  const buffer = Buffer.from(base64Data, 'base64');
+  const buffer = Buffer.from(match[2], 'base64');
 
-  if (buffer.length > 15 * 1024 * 1024) {
-    return res.status(400).json({ error: 'Image file must be under 15MB' });
+  if (buffer.length > MAX_UPLOAD_BYTES) {
+    return res.status(413).json({
+      error: `That image is ${readableSize(buffer.length)}. Please use one under 3 MB.`,
+    });
   }
 
   const safeBase = filename
@@ -936,26 +936,29 @@ router.post('/upload', async (req, res) => {
     .slice(0, 32) || 'upload';
   const uniqueName = `${safeBase}-${Date.now()}.${ext}`;
 
+  /*
+   * Images live in the database rather than on disk: serverless hosts have no
+   * durable filesystem, so a file written to /tmp disappears with the instance
+   * and the storefront would show broken images. GET /uploads/:name serves
+   * them back (server/src/index.js).
+   */
   try {
-    await mkdir(SERVER_UPLOADS_DIR, { recursive: true });
-    await writeFile(join(SERVER_UPLOADS_DIR, uniqueName), buffer);
-
-    try {
-      await mkdir(WEB_UPLOADS_DIR, { recursive: true });
-      await writeFile(join(WEB_UPLOADS_DIR, uniqueName), buffer);
-    } catch {
-      // web public uploads is optional in prod
-    }
-
-    res.json({
-      ok: true,
-      url: `/uploads/${uniqueName}`,
-      filename: uniqueName,
-    });
+    db.prepare('INSERT OR REPLACE INTO uploads (name, mime, size, data) VALUES (?, ?, ?, ?)').run(
+      uniqueName,
+      MIME_BY_EXT[ext] || 'application/octet-stream',
+      buffer.length,
+      buffer,
+    );
   } catch (err) {
     console.error('File upload failed:', err);
-    res.status(500).json({ error: 'Failed to save image file' });
+    return res.status(500).json({ error: 'Failed to save image' });
   }
+
+  res.json({
+    ok: true,
+    url: `/uploads/${uniqueName}`,
+    filename: uniqueName,
+  });
 });
 
 export default router;

@@ -47,6 +47,8 @@ Copy `.env.example` to `.env` in the repo root — the server loads it automatic
 | `PORT`         | `4000`                        | API port                                 |
 | `JWT_SECRET`   | `hinga-dev-secret-change-me`  | Token signing key — **set this in prod** |
 | `DB_PATH`      | `server/data/hinga.db`        | SQLite file location                     |
+| `TURSO_DATABASE_URL` | _(unset)_              | Hosted libSQL/Turso URL — enables durable storage |
+| `TURSO_AUTH_TOKEN`   | _(unset)_              | Auth token for that database             |
 | `CORS_ORIGIN`  | any origin                    | Allowed browser origin                   |
 | `ADMIN_SIGNUP_CODE` | `samhin-admin` (dev only) | Shared code required to sign up as an administrator. Unset in production disables admin sign-up. |
 
@@ -179,7 +181,9 @@ branded gradient if the image cannot be loaded.
 ```bash
 npm run build          # bundles the storefront into web/dist
 JWT_SECRET=<strong> npm start
-```The API serves `web/dist` as static files with an SPA fallback, so a single process serves the whole site on `PORT`.
+```
+
+The API serves `web/dist` as static files with an SPA fallback, so a single process serves the whole site on `PORT`.
 
 ### Deploying to Vercel
 
@@ -193,7 +197,23 @@ API keeps serving the `/api` prefix it already mounts — nothing has to be rema
 Set `JWT_SECRET` (and `CORS_ORIGIN`, if you want to narrow it) in the project's environment
 variables; services share them. Run `vercel dev` to exercise both services locally.
 
-> **Data does not persist as configured.** Vercel functions run from a read-only directory, so on
-> Vercel the API keeps its SQLite file in `/tmp`. That file is per-instance and disappears when the
-> instance recycles, so the catalogue and orders reset. Point the database at durable storage (a
-> hosted SQLite such as libSQL/Turso, or Postgres) before trusting the deployment with real data.
+### Durable data
+
+Vercel gives a function a read-only filesystem with only `/tmp` writable, and `/tmp` is per
+instance. A database kept there starts empty whenever the instance recycles — which is why accounts
+had to be registered again and uploaded images disappeared. Point the API at a hosted
+libSQL/Turso database and the data becomes durable:
+
+1. Create a database at [turso.tech](https://turso.tech) and copy its URL (`libsql://…`).
+2. Create an auth token for it: `turso db tokens create <database>`.
+3. Add `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` to the project's environment variables and
+   redeploy. `GET /api/health` reports `"dbMode": "remote"` once the database is in use.
+
+No schema changes are involved: libSQL speaks SQLite, and `server/src/db.js` keeps the same
+synchronous API the rest of the server is written against. Uploaded product images are stored in
+the database (`uploads` table) and served from `/uploads/<name>`, so they persist with it. The
+admin panel resizes photos in the browser before uploading, which keeps them under Vercel's 4.5 MB
+request-body limit.
+
+Without those variables the API falls back to the local SQLite file — right for `npm run dev` and
+for any host with a persistent disk, not for Vercel.

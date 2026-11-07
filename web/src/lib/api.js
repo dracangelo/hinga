@@ -39,6 +39,11 @@ async function request(path, { method = 'GET', body, headers = {}, auth = true }
 
   if (response.status === 204) return null;
 
+  // Vercel rejects bodies over 4.5 MB before the API ever sees them.
+  if (response.status === 413) {
+    throw new ApiError('That upload is too large. Please choose a smaller image.', 413, null);
+  }
+
   let data = null;
   const text = await response.text();
   if (text) {

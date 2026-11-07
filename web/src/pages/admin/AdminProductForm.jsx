@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, X, Image as ImageIcon, Upload, Trash2, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api.js';
+import { prepareImageForUpload } from '../../lib/image.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { Spinner } from '../../components/ui.jsx';
 import { CategoryEditor } from '../../components/admin/CategoryEditor.jsx';
@@ -148,23 +149,15 @@ export function AdminProductForm() {
     }));
   };
 
-  const readFileAsDataUrl = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
   const handleMainImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
     setUploadingMain(true);
     try {
-      const dataUrl = await readFileAsDataUrl(file);
+      const image = await prepareImageForUpload(file);
       const res = await api.uploadImage({
-        filename: file.name,
-        data: dataUrl,
+        filename: image.name,
+        data: image.data,
       });
       setForm((prev) => ({ ...prev, image: res.url }));
       setErrors((prev) => ({ ...prev, image: undefined }));
@@ -184,10 +177,10 @@ export function AdminProductForm() {
     try {
       let count = 0;
       for (const file of files) {
-        const dataUrl = await readFileAsDataUrl(file);
+        const image = await prepareImageForUpload(file);
         const res = await api.uploadImage({
-          filename: file.name,
-          data: dataUrl,
+          filename: image.name,
+          data: image.data,
         });
         setForm((prev) => ({
           ...prev,
