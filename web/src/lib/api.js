@@ -1,15 +1,47 @@
 const BASE = '/api';
+const TOKEN_KEY = 'hinga.token';
+const USER_KEY = 'hinga.user';
 
-let token = localStorage.getItem('hinga.token') || null;
+let token = localStorage.getItem(TOKEN_KEY) || null;
+let unauthorizedHandler = null;
 
 export function setToken(value) {
   token = value;
-  if (value) localStorage.setItem('hinga.token', value);
-  else localStorage.removeItem('hinga.token');
+  if (value) {
+    localStorage.setItem(TOKEN_KEY, value);
+    return;
+  }
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 }
 
 export function getToken() {
   return token;
+}
+
+/** Re-read the token after another tab signed in or out. */
+export function syncTokenFromStorage() {
+  token = localStorage.getItem(TOKEN_KEY) || null;
+  return token;
+}
+
+/** Cached profile, so a reload can restore the session before the API answers. */
+export function getStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem(USER_KEY) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredUser(user) {
+  if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
+  else localStorage.removeItem(USER_KEY);
+}
+
+/** Registered by AuthProvider so a rejected token signs the UI out immediately. */
+export function setUnauthorizedHandler(handler) {
+  unauthorizedHandler = handler;
 }
 
 export class ApiError extends Error {
@@ -38,6 +70,12 @@ async function request(path, { method = 'GET', body, headers = {}, auth = true }
   }
 
   if (response.status === 204) return null;
+
+  // The stored token is expired or revoked: drop the session right away rather
+  // than leaving the UI showing a signed-in user whose requests all fail.
+  if (response.status === 401 && auth && token) {
+    unauthorizedHandler?.();
+  }
 
   // Vercel rejects bodies over 4.5 MB before the API ever sees them.
   if (response.status === 413) {

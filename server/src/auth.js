@@ -7,7 +7,14 @@ import {
 } from 'node:crypto';
 
 const SECRET = process.env.JWT_SECRET || 'hinga-dev-secret-change-me';
-const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
+
+/*
+ * 30 days: a shop session should survive a browser restart, and every request
+ * still verifies the signature and expiry. Shortening this forces customers
+ * back to the login page for no real gain, since nothing can revoke a token
+ * early today.
+ */
+const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 /*
  * Administrator self-sign-up is gated behind a shared access code. Set

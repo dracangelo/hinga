@@ -60,12 +60,15 @@ function AuthAside({ quote, author, icon: Icon }) {
 /* ------------------------------------------------------------------ */
 
 export function Login({ adminMode = false }) {
-  const { login, logout } = useAuth();
+  const { login, logout, sessionExpired } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({
+    email: typeof location.state?.email === 'string' ? location.state.email : '',
+    password: '',
+  });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -81,7 +84,7 @@ export function Login({ adminMode = false }) {
     setError('');
     setBusy(true);
     try {
-      const user = await login(form);
+      const user = await login({ email: form.email.trim(), password: form.password });
 
       if (adminMode && user.role !== 'admin') {
         logout();
@@ -153,6 +156,13 @@ export function Login({ adminMode = false }) {
               ? 'Sign in with your administrator account to manage orders, products and customers.'
               : 'Track your orders, reorder favourites and save addresses.'}
           </p>
+
+          {sessionExpired && !error && (
+            <p className="mt-5 flex items-start gap-2 rounded-xl bg-gold-soft px-3.5 py-2.5 text-sm text-clay">
+              <AlertCircle size={15} className="mt-0.5 shrink-0" />
+              <span>Your session ended. Sign in again to pick up where you left off.</span>
+            </p>
+          )}
 
           <form onSubmit={submit} className="mt-7 space-y-4">
             <div>
@@ -259,27 +269,31 @@ export function Register() {
 
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' });
   const [error, setError] = useState('');
+  const [hasAccount, setHasAccount] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const submit = async (event) => {
     event.preventDefault();
     setError('');
+    setHasAccount(false);
     if (form.password !== form.confirm) {
-      setError('Passwords do not match');
+      setError('Those passwords do not match. Please type them again.');
       return;
     }
     setBusy(true);
     try {
       const user = await register({
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
         password: form.password,
       });
       toast.success(`Welcome to SAMHIN, ${user.name.split(' ')[0]}`);
       navigate('/account', { replace: true });
     } catch (err) {
       setError(err.message);
+      // Already registered? Send them to sign in instead of staring at a dead end.
+      if (err.status === 409) setHasAccount(true);
     } finally {
       setBusy(false);
     }
@@ -406,6 +420,18 @@ export function Register() {
           </div>
 
           {error && <FormError>{error}</FormError>}
+
+          {hasAccount && (
+            <p className="text-center text-sm text-ink-soft">
+              <Link
+                to="/login"
+                state={{ email: form.email.trim() }}
+                className="link font-medium"
+              >
+                Sign in to that account
+              </Link>
+            </p>
+          )}
 
           <button type="submit" disabled={busy} className="btn btn-primary btn-lg w-full">
             {busy ? 'Creating account…' : <>Create account <ArrowRight size={16} /></>}
