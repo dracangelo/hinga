@@ -642,8 +642,8 @@ export function AdminRegister() {
               </div>
               <p className="mt-1.5 text-xs text-ink-faint">
                 This shared code is configured on the server as{' '}
-                <code className="font-mono">ADMIN_SIGNUP_CODE</code> (default in dev:{' '}
-                <code className="font-mono">samhin-admin</code>).
+                <code className="font-mono">ADMIN_SIGNUP_CODE</code>. Ask the studio owner for it
+                — you only need it once, when creating the account.
               </p>
             </div>
 
