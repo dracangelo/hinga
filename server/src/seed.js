@@ -1,3 +1,4 @@
+import './env.js'; // load ADMIN_* credentials from the repository .env when run directly
 import { db, tx } from './db.js';
 import { hashPassword } from './auth.js';
 import { DEFAULT_CATEGORIES } from './lib/categories.js';
@@ -602,8 +603,17 @@ export function seed({ reset = false } = {}) {
     const insertUser = db.prepare(
       'INSERT INTO users (name, email, password_hash, role, phone, city) VALUES (?, ?, ?, ?, ?, ?)',
     );
-    insertUser.run('Hinga Admin', 'admin@hinga.shop', hashPassword('admin1234'), 'admin', '+254 700 000 000', 'Nairobi');
+    const adminEmail = (process.env.ADMIN_EMAIL || 'admin@hinga.shop').toLowerCase();
+    insertUser.run(
+      process.env.ADMIN_NAME || 'Hinga Admin',
+      adminEmail,
+      hashPassword(process.env.ADMIN_PASSWORD || 'admin1234'),
+      'admin',
+      '+254 700 000 000',
+      'Nairobi',
+    );
     for (const c of CUSTOMERS) {
+      if (c.email.toLowerCase() === adminEmail) continue;
       insertUser.run(c.name, c.email, hashPassword('customer123'), 'customer', c.phone, c.city);
     }
 
@@ -850,7 +860,9 @@ export function seed({ reset = false } = {}) {
   console.log(
     `Seeded ${PRODUCTS.length} potted plants, ${DEFAULT_CATEGORIES.length} categories, ${CUSTOMERS.length + 1} users, 26 orders, ${LANDSCAPING_REQUESTS.length} landscaping requests.`,
   );
-  console.log('Admin:    admin@hinga.shop / admin1234');
+  console.log(
+    `Admin:    ${process.env.ADMIN_EMAIL || 'admin@hinga.shop'} / ${process.env.ADMIN_PASSWORD || 'admin1234'}`,
+  );
   console.log('Customer: wanjiru@example.com / customer123');
 }
 

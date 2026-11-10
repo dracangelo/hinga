@@ -5,6 +5,7 @@ import {
   scryptSync,
   timingSafeEqual,
 } from 'node:crypto';
+import { db } from './db.js';
 
 const SECRET = process.env.JWT_SECRET || 'hinga-dev-secret-change-me';
 
@@ -118,9 +119,54 @@ export function attachUser(req, _res, next) {
   const header = req.get('authorization') || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   const payload = token ? verifyToken(token) : null;
-  if (payload) {
-    req.user = { id: payload.sub, role: payload.role, name: payload.name, email: payload.email };
+  if (!payload) return next();
+
+  /*
+   * Resolve the account from the database rather than trusting the token's
+   * cached role. If an ephemeral deployment recreated the database, user ids
+   * can shift, so fall back to the email claim when the id no longer matches
+   * that email. This keeps a signed-in administrator signed in after a cold
+   * start without ever conflating two different accounts.
+   */
+  const email = String(payload.email || '').toLowerCase();
+  try {
+    let user = db
+      .prepare('SELECT id, role, name, email FROM users WHERE id = ?')
+      .get(payload.sub);
+
+    if (user && email && String(user.email).toLowerCase() !== email) user = null;
+    if (!user && email) {
+      user = db
+        .prepare('SELECT id, role, name, email FROM users WHERE email = ?')
+        .get(email);
+    }
+
+    if (user) {
+      req.user = {
+        id: user.id,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        tokenIssuedAt: Number(payload.iat) || 0,
+        tokenExpiresAt: Number(payload.exp) || 0,
+      };
+    }
+  } catch {
+    /*
+     * A transient database failure should not log everyone out. Trust the
+     * verified token until the database is reachable again; endpoints that
+     * touch data will surface their own error.
+     */
+    req.user = {
+      id: payload.sub,
+      role: payload.role,
+      name: payload.name,
+      email: payload.email,
+      tokenIssuedAt: Number(payload.iat) || 0,
+      tokenExpiresAt: Number(payload.exp) || 0,
+    };
   }
+
   next();
 }
 

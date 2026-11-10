@@ -153,7 +153,7 @@ export function Login({ adminMode = false }) {
           </h1>
           <p className="mt-1.5 text-sm text-ink-soft">
             {adminMode
-              ? 'Sign in with your administrator account to manage orders, products and customers.'
+              ? 'Sign in with your administrator email and password. The access code is only used once, when creating the account.'
               : 'Track your orders, reorder favourites and save addresses.'}
           </p>
 
@@ -546,6 +546,13 @@ export function AdminRegister() {
           <p className="mt-1.5 text-sm text-ink-soft">
             Administrator accounts can manage orders, products, categories, customers and reviews.
           </p>
+          <p className="mt-2 text-sm text-ink-soft">
+            Already have an account?{' '}
+            <Link to="/admin/login" className="link">
+              Sign in
+            </Link>{' '}
+            — you only need the access code once, when creating the account.
+          </p>
 
           {signupEnabled === false && (
             <p className="mt-5 flex items-start gap-2 rounded-xl bg-gold-soft px-3.5 py-2.5 text-sm text-clay">
@@ -680,6 +687,20 @@ export function AdminRegister() {
             </div>
 
             {error && <FormError>{error}</FormError>}
+
+            {/already exists/i.test(error) && (
+              <p className="rounded-xl border border-sand/70 bg-parchment/60 px-3.5 py-2.5 text-center text-sm text-ink-soft">
+                That email already has an account.{' '}
+                <Link
+                  to="/admin/login"
+                  state={{ email: form.email, from: '/admin' }}
+                  className="link"
+                >
+                  Sign in instead
+                </Link>
+                .
+              </p>
+            )}
 
             <button type="submit" disabled={disabled} className="btn btn-primary btn-lg w-full">
               {busy ? 'Creating admin account…' : <>Create admin account <ArrowRight size={16} /></>}

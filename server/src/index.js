@@ -16,6 +16,7 @@ import landscapingRoutes from './routes/landscaping.js';
 import adminRoutes from './routes/admin.js';
 import { db, DB_DRIVER, DB_MODE, DB_TARGET } from './db.js';
 import { seed } from './seed.js';
+import { ensureBootstrapAdmin } from './lib/bootstrap.js';
 
 // Auto-seed on cold start if database is empty (e.g. fresh Vercel /tmp instance)
 try {
@@ -25,6 +26,26 @@ try {
   }
 } catch (e) {
   console.warn('Auto-seed skipped or failed:', e);
+}
+
+/*
+ * Keep a working administrator account on ephemeral hosts. With a durable
+ * database this is a no-op once an admin exists.
+ */
+try {
+  if (ensureBootstrapAdmin()) {
+    console.log(
+      `[admin] Bootstrap administrator ready: ${process.env.ADMIN_EMAIL || 'admin@hinga.shop'}`,
+    );
+  }
+} catch (e) {
+  console.warn('Bootstrap administrator skipped or failed:', e);
+}
+
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.warn(
+    '[auth] JWT_SECRET is not set. Sessions use the development secret; set it to keep sessions stable and secure.',
+  );
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -127,7 +148,9 @@ if (existsSync(webDist)) {
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`\n  Hinga API listening on http://localhost:${PORT}`);
-    console.log(`  Admin login: admin@hinga.shop / admin1234`);
+    console.log(
+      `  Admin login: ${process.env.ADMIN_EMAIL || 'admin@hinga.shop'} / ${process.env.ADMIN_PASSWORD || 'admin1234'}`,
+    );
     console.log(
       `  Admin sign-up: ${adminSignupEnabled() ? 'enabled' : 'disabled (set ADMIN_SIGNUP_CODE to enable)'}\n`,
     );

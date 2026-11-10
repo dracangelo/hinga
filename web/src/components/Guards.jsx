@@ -8,7 +8,13 @@ export function RequireAuth({ children, adminOnly = false }) {
 
   if (loading) return <Spinner label="Checking your session" />;
   if (!user) {
-    return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
+    return (
+      <Navigate
+        to={adminOnly ? '/admin/login' : '/login'}
+        state={{ from: location.pathname + location.search }}
+        replace
+      />
+    );
   }
   if (adminOnly && user.role !== 'admin') return <Navigate to="/account" replace />;
 

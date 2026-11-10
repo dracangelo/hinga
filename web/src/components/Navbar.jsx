@@ -371,8 +371,9 @@ export function Navbar() {
                       <button
                         type="button"
                         onClick={() => {
+                          const wasAdmin = user?.role === 'admin';
                           logout();
-                          navigate('/');
+                          navigate(wasAdmin ? '/admin/login' : '/');
                         }}
                         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink-soft transition-colors hover:bg-parchment hover:text-rose"
                       >

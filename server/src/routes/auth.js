@@ -111,7 +111,29 @@ router.post('/login', (req, res) => {
 router.get('/me', requireAuth, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({ user: publicUser(user) });
+
+  /*
+   * Sliding session: renew the token only when it is within a week of expiring.
+   * Always minting one would make tabs write to localStorage on every check and
+   * bounce storage events between them.
+   */
+  const now = Math.floor(Date.now() / 1000);
+  const remaining = Number(req.user.tokenExpiresAt || 0) - now;
+  const refresh = !remaining || remaining < 60 * 60 * 24 * 7;
+
+  res.json({
+    user: publicUser(user),
+    ...(refresh
+      ? {
+          token: signToken({
+            sub: user.id,
+            role: user.role,
+            name: user.name,
+            email: user.email,
+          }),
+        }
+      : {}),
+  });
 });
 
 router.patch('/me', requireAuth, (req, res) => {

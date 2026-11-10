@@ -45,8 +45,9 @@ export function AuthProvider({ children }) {
 
     const revalidate = async (attempt = 0) => {
       try {
-        const { user: me } = await api.me();
+        const { user: me, token: refreshed } = await api.me();
         if (cancelled) return;
+        if (refreshed) setToken(refreshed);
         applyUser(me);
         setSessionExpired(false);
         setLoading(false);
@@ -94,12 +95,36 @@ export function AuthProvider({ children }) {
       setUser(getStoredUser());
       api
         .me()
-        .then(({ user: me }) => applyUser(me))
+        .then(({ user: me, token: refreshed }) => {
+          if (refreshed) setToken(refreshed);
+          applyUser(me);
+        })
         .catch(() => {});
     };
 
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
+  }, [applyUser]);
+
+  /*
+   * Returning to a long-open tab revalidates the session and renews the token
+   * when it is near expiry, instead of waiting for the next full page load.
+   */
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible' || !getToken()) return;
+      api
+        .me()
+        .then(({ user: me, token: refreshed }) => {
+          if (refreshed) setToken(refreshed);
+          applyUser(me);
+          setSessionExpired(false);
+        })
+        .catch(() => {});
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
   }, [applyUser]);
 
   const login = useCallback(

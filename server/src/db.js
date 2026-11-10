@@ -25,8 +25,18 @@ const SERVERLESS = Boolean(
  * Without them the API uses a local SQLite file, which is what development and
  * long-running servers want.
  */
-const REMOTE_URL = String(process.env.TURSO_DATABASE_URL || process.env.LIBSQL_URL || '').trim();
-const REMOTE_TOKEN = String(process.env.TURSO_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN || '').trim();
+const REMOTE_URL = remoteValue(process.env.TURSO_DATABASE_URL || process.env.LIBSQL_URL);
+const REMOTE_TOKEN = remoteValue(process.env.TURSO_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN);
+
+/*
+ * `.env.example` and the docs use `libsql://…` and `…` as stand-ins. Treat such
+ * placeholders as unset: a copied template should fall back to the local
+ * database instead of trying to reach a host that does not exist.
+ */
+function remoteValue(value) {
+  const trimmed = String(value || '').trim();
+  return trimmed && !/(?:…|\.\.\.|your-database|<[^>]+>)/i.test(trimmed) ? trimmed : '';
+}
 
 export const DB_MODE = REMOTE_URL ? 'remote' : 'local';
 

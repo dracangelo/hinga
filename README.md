@@ -24,7 +24,9 @@ Open <http://localhost:5173>.
 
 - **Customer registration & login**: Customers can sign up directly on `/register` and sign in on `/login`.
 - **Administrator login**: Administrators can sign in directly at `/admin/login` or via the "Store administrator" tab on `/login`. When an admin signs in, they are automatically directed to `/admin`.
-- **Administrator registration**: Gated behind `ADMIN_SIGNUP_CODE` at `/admin/register`. In development, this defaults to `samhin-admin` (and `hinga-admin`). In production, configure your own secret code in your environment variables.
+- **Administrator registration**: Gated behind `ADMIN_SIGNUP_CODE` at `/admin/register`. In development, this defaults to `samhin-admin` (and `hinga-admin`). In production, configure your own secret code in your environment variables. The access code is only needed to *create* an admin — returning admins sign in with their email and password.
+- **Persistent sessions**: Signing in stores a signed session for 30 days. The token is renewed automatically when it is close to expiring, so active users stay signed in across reloads, browser restarts and deploys. Expired sessions send administrators to `/admin/login` rather than the customer login.
+- **Bootstrap administrator**: `ADMIN_NAME`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` define an administrator that is recreated when a database has no admins (for example after a cold start on ephemeral storage). Set these in production so the owner can always sign in without registering again.
 
 ## Scripts
 
@@ -51,6 +53,9 @@ Copy `.env.example` to `.env` in the repo root — the server loads it automatic
 | `TURSO_AUTH_TOKEN`   | _(unset)_              | Auth token for that database             |
 | `CORS_ORIGIN`  | any origin                    | Allowed browser origin                   |
 | `ADMIN_SIGNUP_CODE` | `samhin-admin` (dev only) | Shared code required to sign up as an administrator. Unset in production disables admin sign-up. |
+| `ADMIN_NAME`   | `Hinga Admin`                 | Name of the bootstrap administrator      |
+| `ADMIN_EMAIL`  | `admin@hinga.shop`            | Email of the bootstrap administrator     |
+| `ADMIN_PASSWORD` | `admin1234`                  | Password of the bootstrap administrator  |
 
 ## Architecture
 
@@ -217,3 +222,8 @@ request-body limit.
 
 Without those variables the API falls back to the local SQLite file — right for `npm run dev` and
 for any host with a persistent disk, not for Vercel.
+
+On an ephemeral host the bootstrap administrator (`ADMIN_EMAIL` / `ADMIN_PASSWORD`) is recreated
+whenever the database is empty, so at minimum the owner can always sign in again. Customer
+accounts, orders and uploaded images still need a durable database. Set `ADMIN_PASSWORD` and
+`JWT_SECRET` in production; the defaults are for local demos only.
